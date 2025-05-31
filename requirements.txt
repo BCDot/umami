@@ -1,0 +1,24 @@
+# backend
+flask
+fastapi
+uvicorn
+
+# llm
+openai
+langchain
+
+# testing
+pytest
+pytest-cov
+requests
+flake8
+mypy
+black
+isort
+
+# other
+python-dotenv
+arrow
+pendulum
+loguru
+# Add other project dependencies here

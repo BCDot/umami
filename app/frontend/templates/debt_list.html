@@ -8,16 +8,16 @@
     <p>Displaying debts for: <strong id="debtListContextName">(Context: Business or Customer)</strong></p>
 
     <a href="#" id="addNewDebtBtn" class="button">Add New Debt</a>
-    <!-- Link will be dynamically set by JS based on context -->
 
-    <h3>All Debts</h3>
-    <table border="1" style="width:100%; border-collapse: collapse;">
+    <h3>Debts for <span id="debtListContextSpan">(Selected Context)</span></h3>
+    <table> <!-- Removed border and inline styles -->
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Customer Name</th> <!-- If showing for a business -->
-                <th>Original Amount</th>
-                <th>Outstanding Amount</th>
+                <th>Inv. No.</th>
+                <th>Type</th>
+                <th>Customer</th> <!-- Shown when listing for a business -->
+                <th>Original Amt.</th>
+                <th>Outstanding Amt.</th>
                 <th>Due Date</th>
                 <th>Status</th>
                 <th>Archived</th>
@@ -25,10 +25,7 @@
             </tr>
         </thead>
         <tbody id="debtTableBody">
-            <!-- Debt rows will be dynamically inserted here by JavaScript -->
-            <tr>
-                <td colspan="8" style="text-align:center;">Loading debts or select context...</td>
-            </tr>
+            <tr><td colspan="9" style="text-align: center;">Loading debts or select context...</td></tr>
         </tbody>
     </table>
 </div>

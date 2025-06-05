@@ -8,13 +8,11 @@
     <p>For business: <strong id="listBusinessName">(Select a business first)</strong></p>
 
     <a href="#" id="addNewCustomerBtn" class="button">Add New Customer</a>
-    <!-- Link will be dynamically set by JS or handled by JS to include business_id -->
 
-    <h3>All Customers for Selected Business</h3>
-    <table border="1" style="width:100%; border-collapse: collapse;">
+    <h3>Customers for <span id="customerListBusinessName">(Selected Business)</span></h3>
+    <table> <!-- Removed border and inline styles -->
         <thead>
             <tr>
-                <th>ID</th>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Phone</th>
@@ -23,10 +21,7 @@
             </tr>
         </thead>
         <tbody id="customerTableBody">
-            <!-- Customer rows will be dynamically inserted here by JavaScript -->
-            <tr>
-                <td colspan="6" style="text-align:center;">Loading customers or select a business...</td>
-            </tr>
+            <tr><td colspan="5" style="text-align: center;">Loading customers or select a business...</td></tr>
         </tbody>
     </table>
 </div>

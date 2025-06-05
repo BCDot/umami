@@ -30,13 +30,12 @@
             <textarea id="address" name="address" rows="3" required></textarea>
         </div>
         <div>
-            <label for="is_active">Is Active:</label>
-            <input type="checkbox" id="is_active" name="is_active" checked>
-            <!-- Backend schema has is_active: Optional[bool] = True for CustomerBase -->
+            <label for="is_active_customer_input">Is Active:</label>
+            <input type="checkbox" id="is_active_customer_input" name="is_active" checked>
         </div>
 
         <button type="submit" class="button">Save Customer</button>
-        <a href="customer_list.html" id="cancelCustomerForm" class="button" style="background-color: #6c757d;">Cancel</a>
+        <button type="button" id="cancelCustomerFormBtn" class="button" style="background-color: #6c757d; margin-left: 10px;">Cancel</button>
     </form>
 </div>
 {% endblock %}

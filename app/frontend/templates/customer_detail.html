@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Details - Debt Collection Assistant{% endblock %}
+
+{% block content %}
+<div id="customerDetailPageContainer"> <!-- Main container for JS to know it's on this page -->
+    <h2>Customer Details: <span id="customerDetailName">Loading...</span></h2>
+
+    <div class="customer-info" style="margin-bottom: 20px;">
+        <p><strong>ID:</strong> <span id="customerDetailId">Loading...</span></p>
+        <p><strong>Email:</strong> <span id="customerDetailEmail">Loading...</span></p>
+        <p><strong>Phone:</strong> <span id="customerDetailPhone">Loading...</span></p>
+        <p><strong>Address:</strong> <span id="customerDetailAddress">Loading...</span></p>
+        <p><strong>Is Active:</strong> <span id="customerDetailIsActive">Loading...</span></p>
+        <p><strong>Belongs to Business ID:</strong> <span id="customerDetailBusinessId">Loading...</span>
+           (<span id="customerDetailBusinessName">Loading...</span>)
+        </p>
+        <a href="#" id="editCustomerLink" class="button">Edit Customer Details</a>
+    </div>
+
+    <hr>
+
+    <h3>Debts for this Customer</h3>
+    <a href="#" id="addNewDebtForCustomerBtn" class="button">Add New Debt for this Customer</a>
+    <table style="width:100%; margin-top:10px;">
+        <thead>
+            <tr>
+                <th>Inv. No. / ID</th>
+                <th>Type</th>
+                <th>Original Amt.</th>
+                <th>Outstanding Amt.</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Archived</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="debtTableBodyOnCustomerDetail">
+            <!-- Debt rows will be dynamically inserted here by JavaScript -->
+            <tr>
+                <td colspan="8" style="text-align:center;">Loading debts...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Specific JS for this page could be added here -->
+{% endblock %}

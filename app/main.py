@@ -1,45 +1,66 @@
+from contextlib import asynccontextmanager # For lifespan events
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.backend.auth.endpoints import router as auth_router
 from app.backend.routers.businesses import router as businesses_router
-from app.backend.routers.customers import router as customers_router # New router
-# Removed duplicate import of customers_router
+from app.backend.routers.customers import router as customers_router
+from app.backend.routers.debts import router as debts_router # New router
 from app.backend.routers.communications import router as comms_router
 from app.backend.routers.actions import router as actions_router
 from app.backend.routers.reports import router as reports_router
 
-# Potentially, import your DB creation function if you want to create tables on startup
-# from app.backend.db.session import create_db_and_tables # Example
-# from app.backend.core.models import Base # If create_db_and_tables is in session.py and needs Base
-# from app.backend.db.session import engine # If create_db_and_tables needs engine
+# Placeholder for startup/shutdown events
+async def startup_event():
+    print("Application startup...")
+    # Example: You could initialize DB connections or load ML models here
+    # from app.backend.db.session import engine # If you need engine directly
+    # from app.backend.core.models import Base
+    # Base.metadata.create_all(bind=engine) # Not recommended if using Alembic for prod
+
+async def shutdown_event():
+    print("Application shutdown...")
+    # Example: Clean up resources, close DB connections if not managed by session middleware
 
 app = FastAPI(
     title="Debt Collection Assistant API",
     description="API for managing debt collection processes, customers, communications, and generating reports.",
     version="0.1.0",
-    # You can add more metadata here, like terms_of_service, contact, license_info
-    # openapi_tags=... # For custom tag ordering or descriptions in docs
+    lifespan=lifespan # Use lifespan context manager
 )
 
-# Optional: Create tables on startup (useful for SQLite, dev environments without Alembic always)
-# WARNING: In a production environment with Alembic, you typically wouldn't call create_all()
-# as Alembic should handle the schema. For local dev with SQLite, it can be convenient.
-# def create_tables_on_startup():
-#    print("Creating database tables based on models...")
-#    Base.metadata.create_all(bind=engine) # Make sure Base and engine are imported
-#
-# app.add_event_handler("startup", create_tables_on_startup)
+# CORS Middleware
+origins = [
+    "*", # Allows all origins. For production, restrict this to your frontend's domain(s).
+    # "http://localhost",
+    # "http://localhost:3000", # If your frontend runs on port 3000
+    # "https://your-frontend-domain.com",
+]
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Allows all methods (GET, POST, PUT, DELETE, etc.)
+    allow_headers=["*"], # Allows all headers
+)
 
 # Include all the routers
-# A common practice is to prefix all API routes, e.g., with /api/v1
 API_V1_PREFIX = "/api/v1"
 
-app.include_router(auth_router, prefix=API_V1_PREFIX) # Tags are defined in router itself
-app.include_router(businesses_router, prefix=API_V1_PREFIX)
-app.include_router(customers_router, prefix=f"{API_V1_PREFIX}/customers", tags=["Customers"]) # Add prefix here
+# Routers that have their own prefix (e.g., /auth, /businesses)
+app.include_router(auth_router, prefix=API_V1_PREFIX)
+app.include_router(businesses_router, prefix=API_V1_PREFIX) # Re-add businesses_router
+app.include_router(customers_router, prefix=f"{API_V1_PREFIX}/customers") # Tags are in router
+app.include_router(debts_router, prefix=f"{API_V1_PREFIX}/debts")     # Tags are in router
 app.include_router(comms_router, prefix=API_V1_PREFIX)
 app.include_router(actions_router, prefix=API_V1_PREFIX)
 app.include_router(reports_router, prefix=API_V1_PREFIX)
+
+# Customer router has no internal prefix, so we define its full path here.
+# This also means its tag "Customers" from the router itself will be used.
+app.include_router(customers_router, prefix=f"{API_V1_PREFIX}/customers")
 
 
 @app.get("/", tags=["Root"])
@@ -49,26 +70,19 @@ async def read_root():
     """
     return {"message": "Welcome to Debt Collection Assistant API"}
 
-# Example of how to run this app (from project root):
-# python -m uvicorn app.main:app --reload
+# Static files serving
+# This will serve files from 'app/frontend/' directory under '/static' path.
+# e.g., /static/css/style.css will map to app/frontend/css/style.css
+# This matches how url_for('static', path='css/style.css') would work if 'static' is the mount name.
+app.mount("/static", StaticFiles(directory="app/frontend"), name="static")
 
-# If you want to add static file serving for a simple frontend (ensure correct paths)
-# from fastapi.staticfiles import StaticFiles
-# app.mount("/static", StaticFiles(directory="app/frontend/static"), name="static") # If static files are in app/frontend/static
-# app.mount("/css", StaticFiles(directory="app/frontend/css"), name="css") # If css is directly in app/frontend/css
-# app.mount("/js", StaticFiles(directory="app/frontend/js"), name="js")   # If js is directly in app/frontend/js
-
-# For serving HTML templates, you'd typically use Jinja2Templates and define specific routes.
+# Note on HTML serving:
+# For serving HTML files from app/frontend/templates, you would typically define
+# specific GET routes that return HTMLResponse, often using Jinja2Templates.
+# Example (not part of this subtask, but for context):
+# from fastapi.responses import HTMLResponse
 # from fastapi.templating import Jinja2Templates
 # templates = Jinja2Templates(directory="app/frontend/templates")
-# @app.get("/login-page", response_class=HTMLResponse) # Example
-# async def login_page(request: Request):
-#     return templates.TemplateResponse("login.html", {"request": request})
-
-# Remember that the routers themselves define their own prefixes (e.g. /auth, /businesses).
-# So the final path for an auth endpoint like /token would be /api/v1/auth/token
-# If routers do NOT have internal prefixes, the prefix in include_router is the full path segment.
-# My current routers DO have internal prefixes, so the include_router prefix is additive.
-# E.g. actions_router has prefix="/actions", main app includes it with prefix="/api/v1" -> /api/v1/actions/...
-# The customers_router has no internal prefix, so its prefix is fully defined here.
-# This is a common pattern.
+# @app.get("/some-page", response_class=HTMLResponse)
+# async def get_some_page(request: Request):
+#     return templates.TemplateResponse("some_page.html", {"request": request})

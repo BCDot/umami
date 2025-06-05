@@ -1,87 +1,312 @@
+/* --- Global & Reset --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
 body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    background-color: #f4f4f4;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    line-height: 1.6; /* Ensured */
     color: #333;
+    background-color: #f4f8fa;
+    margin: 0;
+    padding: 0;
+}
+
+/* --- Typography --- */
+h1, h2, h3, h4, h5, h6 {
+    margin-top: 0.5em; /* Added top margin for spacing */
+    margin-bottom: 0.75em;
+    color: #2c3e50;
+    font-weight: 600;
+}
+h1:first-child, h2:first-child, h3:first-child { /* Remove top margin if first element */
+    margin-top: 0;
+}
+
+
+h1 { font-size: 2.2em; }
+h2 { font-size: 1.8em; }
+h3 { font-size: 1.5em; }
+
+p {
+    margin-bottom: 1em;
+}
+
+a {
+    color: #3498db;
+    text-decoration: none;
+    transition: color 0.2s ease-in-out;
+}
+
+a:hover {
+    text-decoration: underline;
+    color: #2980b9;
+}
+
+/* --- Layout --- */
+.container {
+    max-width: 1100px; /* Ensured */
+    margin: 20px auto;
+    padding: 25px; /* Slightly increased padding */
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); /* Enhanced shadow */
 }
 
 header {
-    background-color: #333;
-    color: #fff;
-    padding: 1em 0;
-    text-align: center;
+    background-color: #2c3e50;
+    color: #ecf0f1;
+    padding: 1em 25px; /* Matched container padding */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid #3498db;
 }
 
-nav a {
-    margin: 0 10px;
-    color: #007bff;
+header h1 {
+    margin: 0;
+    font-size: 1.8em;
+    color: #ecf0f1;
+}
+header h1 a { color: #ecf0f1; text-decoration: none; }
+
+header nav ul { list-style: none; display: flex; align-items: center; }
+header nav ul li { margin-left: 15px; }
+header nav ul li a,
+header nav ul li .button { /* Style nav buttons like links */
+    color: #ecf0f1;
     text-decoration: none;
+    padding: 0.6em 0.85em; /* Standardized padding */
+    border-radius: 4px;
+    transition: background-color 0.2s ease, opacity 0.2s ease;
 }
-
-nav a:hover {
-    text-decoration: underline;
+header nav ul li a:hover,
+header nav ul li .button:hover {
+    background-color: #34495e;
+    text-decoration: none;
+    opacity: 0.9;
 }
+header nav button { /* General nav buttons if not using .button */
+    background: none; border: none; color: #ecf0f1;
+    padding: 0.6em 0.85em; cursor: pointer; font-size: 1em;
+    border-radius: 4px; transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+header nav button:hover { background-color: #34495e; opacity: 0.9; }
 
-.container {
-    width: 80%;
-    margin: auto;
-    overflow: hidden;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 5px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+main {
+    padding: 0; /* Container provides padding */
 }
 
 footer {
-    text-align: center;
-    padding: 20px;
-    margin-top: 20px;
+    text-align: center; padding: 25px; margin-top: 30px;
+    border-top: 1px solid #e0e0e0; color: #6c757d; /* Muted text color */
     font-size: 0.9em;
-    color: #666;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
+/* --- Forms --- */
+form div {
+    margin-bottom: 18px; /* Consistent margin */
+}
+/* Using flex for label-input alignment, more flexible than grid for varying label lengths */
+form > div.label-input-group { /* Add this class to divs containing a label and an input/select/textarea */
+    display: flex;
+    flex-direction: column; /* Stack label on top of input by default */
+    gap: 5px; /* Space between label and input */
+}
+/* For horizontal alignment (optional, apply class to specific form divs) */
+form > div.label-input-group-horizontal {
+    flex-direction: row;
+    align-items: center; /* Vertically center label and input */
+    gap: 10px; /* Space between label and input */
+}
+form > div.label-input-group-horizontal label {
+    flex-basis: 150px; /* Fixed width for labels */
+    margin-bottom: 0; /* Remove bottom margin when horizontal */
+    text-align: right; /* Align label text to the right */
+    margin-right: 10px;
+}
+form > div.label-input-group-horizontal input,
+form > div.label-input-group-horizontal select,
+form > div.label-input-group-horizontal textarea {
+    flex-grow: 1; /* Input takes remaining space */
 }
 
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-}
-
-th {
-    background-color: #f2f2f2;
-}
-
-.button, button {
-    display: inline-block;
-    background-color: #007bff;
-    color: white;
-    padding: 10px 15px;
-    text-decoration: none;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-top: 10px;
-    margin-right: 5px;
-}
-
-.button:hover, button:hover {
-    background-color: #0056b3;
-}
-
-input[type="text"], input[type="password"], input[type="email"], textarea {
-    width: calc(100% - 22px);
-    padding: 10px;
-    margin-bottom: 10px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
 
 label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 6px; /* Slightly increased */
+    font-weight: 600;
+    color: #495057; /* Darker gray for labels */
 }
+
+input[type="text"], input[type="email"], input[type="password"],
+input[type="tel"], input[type="date"], input[type="number"],
+textarea, select {
+    width: 100%;
+    padding: 12px; /* Increased padding */
+    border: 1px solid #ced4da; /* Softer border */
+    border-radius: 5px; /* Slightly more rounded */
+    font-size: 1em; color: #495057;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+input[type="text"]:focus, input[type="email"]:focus, /* ... all input types ... */
+textarea:focus, select:focus {
+    border-color: #80bdff; /* Blue focus border */
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25); /* Blue focus shadow */
+}
+input[type="checkbox"] { margin-right: 8px; vertical-align: middle; }
+
+
+textarea#letterPreviewTextArea { /* Specific styling for letter preview */
+    min-height: 200px;
+    resize: vertical;
+    font-family: monospace; /* Good for code/letter like content */
+}
+
+/* --- Buttons --- */
+button, .button {
+    background-color: #3498db; color: white;
+    padding: 10px 18px; /* Standardized */
+    border: none; border-radius: 5px; /* Slightly more rounded */
+    cursor: pointer; text-decoration: none; display: inline-block;
+    font-size: 1em; font-weight: 500;
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+}
+button:hover, .button:hover {
+    background-color: #2980b9; /* Darker blue */
+    text-decoration: none; /* Ensure no underline on hover for button-links */
+}
+button:active, .button:active {
+    transform: translateY(1px); /* Simple active state */
+}
+button:disabled, .button:disabled {
+    background-color: #adb5bd; cursor: not-allowed; opacity: 0.65;
+}
+
+.button-secondary {
+    background-color: #6c757d; /* Gray */
+    color: white;
+}
+.button-secondary:hover {
+    background-color: #5a6268; /* Darker gray */
+}
+
+.button-danger { /* For destructive actions like true delete */
+    background-color: #e74c3c; /* Red */
+}
+.button-danger:hover {
+    background-color: #c0392b; /* Darker red */
+}
+
+
+/* --- Tables --- */
+table {
+    width: 100%; border-collapse: collapse; margin-bottom: 20px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+th, td {
+    border: 1px solid #e0e0e0; /* Softer border */
+    padding: 12px; /* Slightly more padding */
+    text-align: left; vertical-align: middle;
+}
+thead th {
+    background-color: #34495e; color: white; font-weight: 600;
+    border-color: #34495e; /* Match background */
+}
+tbody tr:nth-child(even) { background-color: #f8f9fa; /* Very light gray */ }
+tbody tr:hover { background-color: #e9ecef; /* Light hover */ }
+
+/* Ensure buttons in table cells align nicely */
+td .button, td .button-small { margin-right: 5px; margin-bottom: 5px; } /* Add bottom margin if they wrap */
+td .button:last-child, td .button-small:last-child { margin-right: 0; }
+
+
+/* --- Buttons (Small) --- */
+.button-small {
+    padding: 5px 10px; /* Standardized */
+    font-size: 0.9em;  /* Standardized */
+}
+
+/* --- Detail Pages & Lists --- */
+.detail-section {
+    margin-bottom: 25px; padding: 20px;
+    background-color: #fdfdfd; border: 1px solid #e9ecef; /* Softer border */
+    border-radius: 5px;
+}
+.detail-section h3 {
+    margin-top: 0; border-bottom: 1px solid #e9ecef;
+    padding-bottom: 10px; margin-bottom: 15px; color: #34495e;
+}
+.detail-section p { margin-bottom: 0.5rem; }
+.detail-section p strong { color: #495057; } /* Darker label text */
+
+
+#communicationLogsList, #dashboardDebtStatusList {
+    list-style: none; padding-left: 0;
+}
+#communicationLogsList li, #dashboardDebtStatusList li {
+    padding: 12px; border-bottom: 1px solid #f1f1f1;
+    margin-bottom: 8px; background-color: #fff; border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+#communicationLogsList li:last-child, #dashboardDebtStatusList li:last-child {
+    border-bottom: none;
+}
+#communicationLogsList li strong, #dashboardDebtStatusList li strong { /* Style for labels within list items */
+    color: #34495e;
+}
+
+
+/* --- Dashboard --- */
+#reportSummaryContainer p { /* Target paragraphs in summary for consistent spacing */
+    margin-bottom: 0.5rem;
+    font-size: 1.1em;
+}
+#reportSummaryContainer p strong {
+    color: #495057; /* Darker label text */
+    min-width: 250px; /* Align values somewhat if needed */
+    display: inline-block;
+}
+#dashboardTotalOutstandingDebt, #dashboardOverdueAccountsCount, #dashboardAverageOverdueDays {
+    font-weight: bold; color: #3498db; /* Primary blue for values */
+}
+
+/* --- Global Messages --- */
+#globalMessages {
+    position: fixed; top: 20px; right: 20px;
+    z-index: 1050; width: 320px; /* Slightly wider */
+}
+#globalMessages .message {
+    padding: 12px 15px; margin-bottom: 12px; border-radius: 5px;
+    color: white; position: relative;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2); /* Enhanced shadow */
+    display: flex; justify-content: space-between; align-items: center;
+    opacity: 0; animation: fadeInMessage 0.4s 0.1s forwards; /* Added slight delay */
+}
+@keyframes fadeInMessage { to { opacity: 1; } } /* Simpler opacity animation */
+
+#globalMessages .message-error { background-color: #e74c3c; }
+#globalMessages .message-success { background-color: #2ecc71; }
+#globalMessages .message-info { background-color: #3498db; }
+
+.message .close-btn {
+    background: none; border: none; color: white;
+    font-size: 1.5em; font-weight: bold; cursor: pointer;
+    opacity: 0.8; padding: 0 0 0 15px; /* Padding on left for spacing from text */
+    line-height: 1; /* Ensure 'x' aligns well */
+}
+.message .close-btn:hover { opacity: 1; }
+
+/* Utility classes */
+.text-center { text-align: center; }
+.text-muted { color: #6c757d; }
+.small-text { font-size: 0.85em; }
+.mb-1 { margin-bottom: 0.5rem !important; }
+.mb-2 { margin-bottom: 1rem !important; }
+.mt-1 { margin-top: 0.5rem !important; }
+.mt-2 { margin-top: 1rem !important; }

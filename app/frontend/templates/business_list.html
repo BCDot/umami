@@ -9,20 +9,17 @@
     <a href="business_form.html" class="button">Add New Business</a>
 
     <h3>Registered Businesses</h3>
-    <table border="1" style="width:100%; border-collapse: collapse;">
+    <table> <!-- Removed border and inline styles for cleaner HTML, rely on style.css -->
         <thead>
             <tr>
-                <th>Business Name</th>
+                <th>Name</th>
                 <th>ABN</th>
-                <th>Contact Email</th>
+                <th>Email</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody id="businessTableBody">
-            <!-- Business rows will be dynamically inserted here by JavaScript -->
-            <tr>
-                <td colspan="4" style="text-align:center;">Loading businesses...</td>
-            </tr>
+            <tr><td colspan="4" style="text-align: center;">Loading businesses...</td></tr>
         </tbody>
     </table>
 </div>

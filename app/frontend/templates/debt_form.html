@@ -49,13 +49,12 @@
             <textarea id="notes" name="notes" rows="4"></textarea>
         </div>
         <div>
-            <label for="is_archived">Is Archived:</label>
-            <input type="checkbox" id="is_archived" name="is_archived">
+            <label for="is_archived_debt_input">Is Archived:</label>
+            <input type="checkbox" id="is_archived_debt_input" name="is_archived">
         </div>
 
         <button type="submit" class="button">Save Debt</button>
-        <a href="#" id="cancelDebtForm" class="button" style="background-color: #6c757d;">Cancel</a>
-        <!-- Cancel button href will be set dynamically by JS to go back to relevant list -->
+        <button type="button" id="cancelDebtFormBtn" class="button" style="background-color: #6c757d; margin-left: 10px;">Cancel</button>
     </form>
 </div>
 {% endblock %}

@@ -173,6 +173,19 @@ def get_debt(db: Session, debt_id: int, business_id: int) -> Optional[models.Deb
     """
     return db.query(models.Debt).filter(models.Debt.id == debt_id, models.Debt.business_id == business_id).first()
 
+def get_debt_by_id_for_user(db: Session, debt_id: int, user_id: int) -> Optional[models.Debt]:
+    """
+    Fetches a debt by its ID, ensuring it belongs to a business owned by the specified user_id.
+    """
+    return db.query(models.Debt)\
+        .join(models.Business, models.Debt.business_id == models.Business.id)\
+        .filter(models.Debt.id == debt_id, models.Business.user_id == user_id)\
+        .first()
+
+def get_debt_by_id_unscoped(db: Session, debt_id: int) -> Optional[models.Debt]:
+    """Gets a debt by ID without any ownership checks. For direct test verification or admin use."""
+    return db.query(models.Debt).filter(models.Debt.id == debt_id).first()
+
 def get_all_debts_by_customer(db: Session, customer_id: int, business_id: int, skip: int = 0, limit: int = 100) -> List[models.Debt]:
     """
     Get all debts for a specific customer, ensuring the customer belongs to the specified business.

@@ -2,6 +2,7 @@
 flask
 fastapi
 uvicorn
+SQLAlchemy  # Core ORM
 
 # llm
 openai
@@ -15,6 +16,10 @@ flake8
 mypy
 black
 isort
+
+# auth
+passlib[bcrypt]
+python-jose[cryptography]
 
 # other
 python-dotenv

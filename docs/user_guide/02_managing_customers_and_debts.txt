@@ -1,0 +1,9 @@
+Placeholder for: Managing Customers and Debts
+
+This section covers:
+- How to add a new customer.
+- How to view and edit existing customer details.
+- How to record a new debt for a customer.
+- How to update debt status (e.g., payments received, disputes).
+- Viewing debt history for a customer.
+- Archiving customers or debts.

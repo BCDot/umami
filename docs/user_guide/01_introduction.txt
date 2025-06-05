@@ -1,0 +1,6 @@
+Placeholder for: Introduction to the AI Debt Collection Assistant
+
+This guide will walk you through the features and functionalities of the system.
+- What the system does
+- Key benefits
+- How to navigate the interface (once developed)

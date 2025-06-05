@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Debt Collection Assistant{% endblock %}</title>
+    <!-- Assuming 'static' is served from 'app/frontend/static' or similar -->
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <!-- Fallback or direct path for simpler setups if url_for is not available: -->
+    <!-- <link rel="stylesheet" href="/static/css/style.css"> -->
+    <!-- Or, if css is directly under frontend and served: -->
+    <!-- <link rel="stylesheet" href="../css/style.css"> -->
+
+</head>
+<body>
+    <header>
+        <h1>Debt Collection Assistant</h1>
+        <nav>
+            <a href="{{ url_for('dashboard_page') }}">Dashboard</a> |
+            <a href="{{ url_for('login_page') }}">Login</a>
+            <!-- Add more navigation links as needed -->
+        </nav>
+    </header>
+
+    <main class="container">
+        {% block content %}
+        <!-- Content will be injected here by child templates -->
+        {% endblock %}
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Your Company Name. All rights reserved.</p>
+    </footer>
+
+    {% block scripts %}
+    <!-- Optional JavaScript files can be linked here -->
+    {% endblock %}
+</body>
+</html>

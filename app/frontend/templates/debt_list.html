@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Debts - Debt Collection Assistant{% endblock %}
+
+{% block content %}
+<h2>Debt Management</h2>
+<p>View, add, or manage debt records for customers.</p>
+
+<a href="{{ url_for('add_debt_page') }}" class="button">Add New Debt</a>
+
+<h3>All Debts</h3>
+<!-- Add filtering options here if needed (e.g., by customer, by status) -->
+<form method="GET" action="{{ url_for('debt_list_page') }}">
+    <label for="filter_customer">Filter by Customer ID:</label>
+    <input type="text" id="filter_customer" name="customer_id" placeholder="Enter Customer ID">
+    <label for="filter_status">Filter by Status:</label>
+    <input type="text" id="filter_status" name="status" placeholder="e.g., Outstanding, Overdue">
+    <button type="submit" class="button">Filter</button>
+</form>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Customer Name</th>
+            <th>Original Amount</th>
+            <th>Outstanding Amount</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Placeholder for debt rows. Loop through debts here. -->
+        <tr>
+            <td>DEBT001</td>
+            <td>John Doe (CUST001)</td>
+            <td>$500.00</td>
+            <td>$500.00</td>
+            <td>2023-10-01</td>
+            <td>Overdue</td>
+            <td>
+                <a href="{{ url_for('debt_detail_page', debt_id='DEBT001') }}">View Details</a> |
+                <a href="{{ url_for('edit_debt_page', debt_id='DEBT001') }}">Edit</a>
+            </td>
+        </tr>
+        <tr>
+            <td>DEBT002</td>
+            <td>Jane Smith (CUST002)</td>
+            <td>$1250.75</td>
+            <td>$800.00</td>
+            <td>2023-11-15</td>
+            <td>Outstanding</td>
+            <td>
+                <a href="{{ url_for('debt_detail_page', debt_id='DEBT002') }}">View Details</a> |
+                <a href="{{ url_for('edit_debt_page', debt_id='DEBT002') }}">Edit</a>
+            </td>
+        </tr>
+        <tr>
+            <td>DEBT003</td>
+            <td>John Doe (CUST001)</td>
+            <td>$300.00</td>
+            <td>$0.00</td>
+            <td>2023-09-01</td>
+            <td>Paid</td>
+            <td>
+                <a href="{{ url_for('debt_detail_page', debt_id='DEBT003') }}">View Details</a> |
+                <a href="{{ url_for('edit_debt_page', debt_id='DEBT003') }}">Edit</a>
+            </td>
+        </tr>
+        <!-- End placeholder -->
+    </tbody>
+</table>
+{% endblock %}

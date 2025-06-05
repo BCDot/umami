@@ -1,0 +1,10 @@
+Placeholder for: Generating Collection Letters
+
+This section explains:
+- How to select a debt for letter generation.
+- Choosing the type of letter (e.g., initial reminder, formal demand).
+- Understanding state-specific legal considerations.
+- Using the LLM to draft letter content.
+- Previewing and editing generated letters.
+- Logging sent communications.
+- Best practices for letter content and tone.

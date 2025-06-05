@@ -1,0 +1,16 @@
+Placeholder for: Frequently Asked Questions (FAQ)
+
+Q1: How is my data protected?
+A1: [Details about data security measures, encryption, etc.]
+
+Q2: Can I customize the letter templates?
+A2: [Explanation of how LLM prompts can be tailored or if fixed templates are used/customizable.]
+
+Q3: What happens if a customer disputes a debt?
+A3: [Guidance on using the system to log disputes and follow appropriate procedures.]
+
+Q4: How does the LLM ensure letters are compliant?
+A4: [Explanation of prompts, fine-tuning (if any), and the importance of user review.]
+
+Q5: Who do I contact for support?
+A5: [Support contact information or procedures.]

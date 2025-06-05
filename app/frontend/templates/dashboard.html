@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Debt Collection Assistant{% endblock %}
+
+{% block content %}
+<h2>Dashboard</h2>
+<p>Welcome to the Debt Collection Assistant. Here's a summary of your current situation:</p>
+
+<!-- Placeholder for summary cards or charts -->
+<div style="display: flex; justify-content: space-around; margin-bottom: 20px;">
+    <div style="border: 1px solid #ccc; padding: 15px; text-align: center;">
+        <h4>Total Outstanding Debt</h4>
+        <p>$XX,XXX.XX</p>
+    </div>
+    <div style="border: 1px solid #ccc; padding: 15px; text-align: center;">
+        <h4>Overdue Accounts</h4>
+        <p>YY</p>
+    </div>
+    <div style="border: 1px solid #ccc; padding: 15px; text-align: center;">
+        <h4>Recent Communications</h4>
+        <p>ZZ</p>
+    </div>
+</div>
+
+<h3>Quick Actions</h3>
+<ul>
+    <li><a href="{{ url_for('customer_list_page') }}" class="button">Manage Customers</a></li>
+    <li><a href="{{ url_for('debt_list_page') }}" class="button">Manage Debts</a></li>
+    <li><a href="{{ url_for('reports_page') }}" class="button">View Reports</a></li>
+</ul>
+
+<!-- Placeholder for a list of urgent items or recent activity -->
+<h3>Urgent Items / Recent Activity</h3>
+<p>Placeholder for a list of debts needing immediate attention or recent communications sent.</p>
+<ul>
+    <li>Debt #123 (Customer A) - Overdue by 30 days</li>
+    <li>Communication sent to Customer B for Debt #456</li>
+</ul>
+
+{% endblock %}

@@ -310,3 +310,32 @@ td .button:last-child, td .button-small:last-child { margin-right: 0; }
 .mb-2 { margin-bottom: 1rem !important; }
 .mt-1 { margin-top: 0.5rem !important; }
 .mt-2 { margin-top: 1rem !important; }
+
+/* --- Empty List Message Styling --- */
+.empty-list-message {
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
+    color: #555;
+    background-color: #f9f9f9; /* Optional: slight background for the message row/item */
+}
+
+
+/* --- Form Validation Error Styling --- */
+.error-message {
+    color: #e74c3c; /* Match .message-error background for consistency */
+    font-size: 0.85em;
+    display: block; /* Ensure it takes its own line */
+    margin-top: 4px;
+    margin-bottom: 5px; /* Add some space below the error message */
+}
+
+.input-error {
+    border-color: #e74c3c !important; /* Override default border and make it prominent */
+    box-shadow: 0 0 0 0.2rem rgba(231, 76, 60, 0.25) !important; /* Add a red glow, similar to focus but red */
+}
+/* Ensure that focus on an input with error still looks like focus, but maintains error indication */
+.input-error:focus {
+    border-color: #e74c3c !important; /* Keep red border on focus */
+    box-shadow: 0 0 0 0.25rem rgba(231, 76, 60, 0.45) !important; /* More intense red glow on focus */
+}

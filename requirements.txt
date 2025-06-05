@@ -3,6 +3,8 @@ flask
 fastapi
 uvicorn
 SQLAlchemy  # Core ORM
+python-multipart # For FastAPI form data (OAuth2PasswordRequestForm)
+alembic     # For database migrations
 
 # llm
 openai

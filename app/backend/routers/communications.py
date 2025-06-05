@@ -2,141 +2,138 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from app.backend.core import crud, models, schemas
+from app.backend.core import crud, models, schemas # Added models import
+from app.backend.auth.security import get_current_active_user # For protecting endpoints
 # from app.dependencies import get_db # Replace with your actual get_db dependency path
 
 # Placeholder for get_db dependency - replace with your actual DB session provider
-# This should be the same as used in other router files like auth/endpoints.py
 def get_db():
-    # This is a placeholder. In a real FastAPI app, you'd yield a database session.
-    # from app.database import SessionLocal # Or your actual path to SessionLocal
-    # db = SessionLocal()
-    # try:
-    #     yield db
-    # finally:
-    #     db.close()
     print("[COMMUNICATIONS_ROUTER_PLACEHOLDER] get_db() called, returning None for now.")
-    yield None # CRUD operations will not work without a real DB session.
+    yield None
 
 
 router = APIRouter(
-    prefix="/communications", # All routes in this router will start with /communications
-    tags=["Communication Logs"], # Tag for API documentation
+    prefix="/communications",
+    tags=["Communication Logs"],
 )
+
+def get_authorized_business_id(current_user: models.User) -> int:
+    """Helper to get the user's first business ID or raise error."""
+    if not current_user.businesses:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User has no associated businesses."
+        )
+    return current_user.businesses[0].id
 
 @router.post("/debt/{debt_id}", response_model=schemas.CommunicationLog)
 async def create_log_for_debt(
     debt_id: int,
     log: schemas.CommunicationLogCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
 ):
     """
-    Create a new communication log for a specific debt.
+    Create a new communication log for a specific debt, ensuring user owns the business associated with the debt.
     """
-    if not db: # Added for placeholder get_db
-        raise HTTPException(status_code=503, detail="Database not configured (placeholder DB)")
+    if not db:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database not configured")
 
-    # Verify if the debt exists first (optional, but good practice)
-    # db_debt = crud.get_debt(db, debt_id=debt_id)
-    # if not db_debt:
-    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Debt with ID {debt_id} not found")
+    authorized_business_id = get_authorized_business_id(current_user)
+    db_debt = crud.get_debt(db, debt_id=debt_id, business_id=authorized_business_id)
+    if not db_debt:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Debt not found or not authorized for this user.")
 
-    print(f"[COMM_ROUTER_PLACEHOLDER] Creating log for debt_id: {debt_id}")
-    # Since CRUD is placeholder, we simulate creation.
-    # In a real scenario, crud.create_communication_log would be called.
-    # return crud.create_communication_log(db=db, log=log, debt_id=debt_id)
+    # Ensure the log's debt_id from schema matches path, or rely on path debt_id
+    if log.debt_id != debt_id:
+        # This could be an error, or one could prioritize the path variable.
+        # For now, let's assume the schema's debt_id should align or be ignored if path is source of truth.
+        # The crud.create_communication_log uses the debt_id parameter passed to it.
+        print(f"Warning: Log schema debt_id ({log.debt_id}) differs from path debt_id ({debt_id}). Using path debt_id.")
 
-    # Dummy response as CRUD is not fully functional with placeholder DB
-    return schemas.CommunicationLog(
-        id=999, # Dummy ID
-        debt_id=debt_id,
-        communication_type=log.communication_type,
-        llm_prompt_used=log.llm_prompt_used,
-        generated_content_snapshot=log.generated_content_snapshot,
-        status=log.status,
-        response_received=log.response_received,
-        date_sent="2024-01-01T12:00:00Z", # Dummy date
-        created_at="2024-01-01T12:00:00Z" # Dummy date
-    )
+    created_log = crud.create_communication_log(db=db, log=log, debt_id=debt_id)
+    return created_log
 
 @router.get("/debt/{debt_id}", response_model=List[schemas.CommunicationLog])
 async def read_debt_communication_logs(
     debt_id: int,
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
 ):
     """
-    Retrieve all communication logs for a specific debt.
+    Retrieve all communication logs for a specific debt, ensuring user owns the business.
     """
-    if not db: # Added for placeholder get_db
-        # Return empty list or raise error if DB isn't available.
-        # For placeholder, returning empty list to simulate "no logs" or "no DB".
-        print("[COMM_ROUTER_PLACEHOLDER] DB not configured, returning empty list for logs.")
+    if not db:
         return []
 
-    # In a real scenario, crud.get_communication_logs_for_debt would be called.
-    # logs = crud.get_communication_logs_for_debt(db=db, debt_id=debt_id, skip=skip, limit=limit)
-    # return logs
+    authorized_business_id = get_authorized_business_id(current_user)
+    db_debt = crud.get_debt(db, debt_id=debt_id, business_id=authorized_business_id)
+    if not db_debt:
+        # If debt not found/authorized, no logs should be accessible for it by this user
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Debt not found or not authorized for this user, cannot retrieve logs.")
+        # Alternatively, return empty list if preferred: return []
 
-    print(f"[COMM_ROUTER_PLACEHOLDER] Reading logs for debt_id: {debt_id}")
-    # Dummy response
-    return []
+    logs = crud.get_communication_logs_for_debt(db=db, debt_id=debt_id, skip=skip, limit=limit)
+    return logs
 
 
 @router.put("/{log_id}", response_model=schemas.CommunicationLog)
 async def update_existing_communication_log(
     log_id: int,
     log_update: schemas.CommunicationLogUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
 ):
     """
-    Update an existing communication log.
-    """
-    if not db: # Added for placeholder get_db
-        raise HTTPException(status_code=503, detail="Database not configured (placeholder DB)")
-
-    # db_log = crud.get_communication_log(db, log_id=log_id)
-    # if not db_log:
-    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Communication log with ID {log_id} not found")
-
-    # updated_log = crud.update_communication_log(db=db, log_id=log_id, log_update=log_update)
-    # if not updated_log: # Should not happen if get_communication_log found it, but good check
-    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Communication log with ID {log_id} not found after update attempt")
-    # return updated_log
-
-    print(f"[COMM_ROUTER_PLACEHOLDER] Updating log_id: {log_id}")
-    # Dummy response as CRUD is not fully functional with placeholder DB
-    # This assumes the log exists and is updated.
-    # A real get_communication_log would be needed to fetch existing data.
-    return schemas.CommunicationLog(
-        id=log_id,
-        debt_id=log_update.debt_id or 1, # Requires debt_id if it's part of update or fetched
-        communication_type=log_update.communication_type or "Unknown",
-        llm_prompt_used=log_update.llm_prompt_used,
-        generated_content_snapshot=log_update.generated_content_snapshot,
-        status=log_update.status or "Updated",
-        response_received=log_update.response_received,
-        date_sent="2024-01-01T12:00:00Z",
-        created_at="2024-01-01T12:00:00Z"
-    )
-
-@router.get("/{log_id}", response_model=schemas.CommunicationLog)
-async def read_communication_log(log_id: int, db: Session = Depends(get_db)):
-    """
-    Retrieve a specific communication log by its ID.
+    Update an existing communication log, ensuring user owns the associated debt's business.
     """
     if not db:
-        raise HTTPException(status_code=503, detail="Database not configured (placeholder DB)")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database not configured")
 
-    # db_log = crud.get_communication_log(db, log_id=log_id)
-    # if db_log is None:
-    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Communication log with ID {log_id} not found")
-    # return db_log
-    print(f"[COMM_ROUTER_PLACEHOLDER] Reading log_id: {log_id}")
-    # Dummy response for a single log
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Log {log_id} not found (placeholder)")
+    db_log = crud.get_communication_log(db, log_id=log_id)
+    if not db_log:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Communication log with ID {log_id} not found.")
 
-# Note: A DELETE endpoint for communication logs might also be useful,
-# or an archive mechanism similar to other models, depending on requirements.
-# For now, it's excluded as per the prompt.
+    authorized_business_id = get_authorized_business_id(current_user)
+    db_debt = crud.get_debt(db, debt_id=db_log.debt_id, business_id=authorized_business_id)
+    if not db_debt:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to update this communication log."
+        )
+
+    # Ensure log_update does not try to change debt_id if it's part of the schema
+    if hasattr(log_update, 'debt_id') and log_update.debt_id is not None and log_update.debt_id != db_log.debt_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot change the debt association of a communication log.")
+
+    updated_log = crud.update_communication_log(db=db, log_id=log_id, log_update=log_update)
+    # crud.update_communication_log already handles the case where db_log might be None again, but we checked.
+    return updated_log
+
+
+@router.get("/{log_id}", response_model=schemas.CommunicationLog)
+async def read_communication_log(
+    log_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
+    """
+    Retrieve a specific communication log by its ID, ensuring user owns the associated debt's business.
+    """
+    if not db:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database not configured")
+
+    db_log = crud.get_communication_log(db, log_id=log_id)
+    if db_log is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Communication log with ID {log_id} not found.")
+
+    authorized_business_id = get_authorized_business_id(current_user)
+    db_debt = crud.get_debt(db, debt_id=db_log.debt_id, business_id=authorized_business_id)
+    if not db_debt:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to view this communication log."
+        )
+    return db_log

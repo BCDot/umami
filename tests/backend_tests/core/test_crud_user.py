@@ -27,8 +27,11 @@ def test_create_and_get_user(db_session: Session):
     assert created_user.username == user_username
     assert created_user.id is not None
     assert created_user.is_active is True
-    # Check if password was "hashed" (using placeholder logic from security.py)
-    assert created_user.hashed_password == user_password + "notreallyhashed"
+
+    # Verify password correctly using the security utility
+    from app.backend.auth.security import verify_password
+    assert verify_password(user_password, created_user.hashed_password) is True
+    assert created_user.hashed_password != user_password # Ensure it's not plain text
 
     # Get user by ID
     retrieved_user_by_id = crud.get_user(db=db_session, user_id=created_user.id)

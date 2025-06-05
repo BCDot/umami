@@ -11,15 +11,21 @@ class CommunicationLogBase(BaseModel):
     generated_content_snapshot: Optional[str] = None
     status: Optional[str] = None
     response_received: Optional[str] = None
-    debt_id: int
+    debt_id: int # This is required for creation via CommunicationLogCreate
 
 class CommunicationLogCreate(CommunicationLogBase):
     pass
 
-class CommunicationLogUpdate(CommunicationLogBase):
-    pass
+class CommunicationLogUpdate(BaseModel): # Does not inherit CommunicationLogBase to make all fields truly optional for update
+    communication_type: Optional[str] = None
+    llm_prompt_used: Optional[str] = None
+    generated_content_snapshot: Optional[str] = None
+    status: Optional[str] = None
+    response_received: Optional[str] = None
+    # date_sent could be updatable too if needed:
+    # date_sent: Optional[datetime] = None
 
-class CommunicationLog(CommunicationLogBase):
+class CommunicationLog(CommunicationLogBase): # This is the response model, inherits debt_id
     id: int
     date_sent: datetime
     created_at: datetime
@@ -35,6 +41,7 @@ class DebtBase(BaseModel):
     invoice_number: Optional[str] = None
     status: str = 'Outstanding'
     notes: Optional[str] = None
+    is_archived: Optional[bool] = False # New field
     customer_id: int
     business_id: int
 
@@ -49,11 +56,13 @@ class DebtUpdate(BaseModel):
     invoice_number: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = None
+    is_archived: Optional[bool] = None # New field for updates
 
 class Debt(DebtBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    is_archived: bool # Ensure it's part of the response model
     communication_logs: List[CommunicationLog] = []
 
     model_config = ConfigDict(from_attributes=True)
@@ -64,6 +73,7 @@ class CustomerBase(BaseModel):
     email: str
     phone: Optional[str] = None
     address: str
+    is_active: Optional[bool] = True # New field
     business_id: int
 
 class CustomerCreate(CustomerBase):
@@ -74,13 +84,15 @@ class CustomerUpdate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
+    is_active: Optional[bool] = None # New field for updates
 
 class Customer(CustomerBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    is_active: bool # Ensure it's part of the response model
     debts: List[Debt] = []
-    # business: Optional[Business] = None # ForwardRef might be needed if Business schema is defined later
+    # business: Optional[Business] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -153,6 +165,14 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
     scopes: List[str] = []
+
+# ---- Letter Generation Schemas ----
+class LetterGenerationRequest(BaseModel):
+    letter_type: str
+    state: str # For state-specific legal context, e.g., "NSW", "VIC"
+
+class PlainTextResponse(BaseModel):
+    content: str
 
 # ---- Reporting Schemas ----
 class ReportSummarySchema(BaseModel):

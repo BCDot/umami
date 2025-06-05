@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Customer Details - Debt Collection Assistant{% endblock %}
+
+{% block content %}
+<div id="customerFormPage"> <!-- Conceptual ID for JS -->
+    <h2 id="customerFormTitle">Add New Customer</h2>
+    <p>For business: <strong id="formBusinessName">(Select a business first)</strong></p>
+
+    <form id="customerForm">
+        <input type="hidden" id="customer_id" name="customer_id" value="">
+        <!-- business_id might be needed in the form if the API create endpoint for customers expects it in body -->
+        <!-- Otherwise, it will be part of the URL path for POST e.g., /businesses/{biz_id}/customers -->
+        <input type="hidden" id="form_business_id" name="business_id" value="">
+
+        <div>
+            <label for="customer_name">Customer Name:</label>
+            <input type="text" id="customer_name" name="customer_name" required>
+        </div>
+        <div>
+            <label for="email">Email Address:</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        <div>
+            <label for="phone">Phone Number:</label>
+            <input type="tel" id="phone" name="phone">
+        </div>
+        <div>
+            <label for="address">Address:</label>
+            <textarea id="address" name="address" rows="3" required></textarea>
+        </div>
+        <div>
+            <label for="is_active">Is Active:</label>
+            <input type="checkbox" id="is_active" name="is_active" checked>
+            <!-- Backend schema has is_active: Optional[bool] = True for CustomerBase -->
+        </div>
+
+        <button type="submit" class="button">Save Customer</button>
+        <a href="customer_list.html" id="cancelCustomerForm" class="button" style="background-color: #6c757d;">Cancel</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Specific JS for this page could be added here -->
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Business Details - Debt Collection Assistant{% endblock %}
+
+{% block content %}
+<div id="businessFormPage"> <!-- Conceptual ID for JS -->
+    <h2 id="businessFormTitle">Add New Business</h2>
+    <p id="businessFormDescription">Fill in the details below to register a new business. To edit an existing business, its details will be pre-filled.</p>
+
+    <form id="businessForm">
+        <input type="hidden" id="business_id" name="business_id" value="">
+
+        <div>
+            <label for="business_name">Business Name:</label>
+            <input type="text" id="business_name" name="business_name" required>
+        </div>
+        <div>
+            <label for="abn">ABN (Australian Business Number):</label>
+            <input type="text" id="abn" name="abn">
+        </div>
+        <div>
+            <label for="contact_email">Contact Email:</label>
+            <input type="email" id="contact_email" name="contact_email" required>
+        </div>
+        <div>
+            <label for="contact_phone">Contact Phone:</label>
+            <input type="tel" id="contact_phone" name="contact_phone">
+        </div>
+        <div>
+            <label for="address">Address:</label>
+            <textarea id="address" name="address" rows="3"></textarea>
+        </div>
+
+        <button type="submit" class="button">Save Business</button>
+        <a href="business_list.html" class="button" style="background-color: #6c757d;">Cancel</a>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Specific JS for this page could be added here -->
+{% endblock %}

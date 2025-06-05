@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}My Businesses - Debt Collection Assistant{% endblock %}
+
+{% block content %}
+<div id="businessListPage"> <!-- Conceptual ID for JS to know it's on this page -->
+    <h2>My Businesses</h2>
+    <p>Manage your registered businesses or add a new one.</p>
+    <a href="business_form.html" class="button">Add New Business</a>
+
+    <h3>Registered Businesses</h3>
+    <table border="1" style="width:100%; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>Business Name</th>
+                <th>ABN</th>
+                <th>Contact Email</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="businessTableBody">
+            <!-- Business rows will be dynamically inserted here by JavaScript -->
+            <tr>
+                <td colspan="4" style="text-align:center;">Loading businesses...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<!-- Specific JS for this page could be added here if main.js becomes too large -->
+{% endblock %}

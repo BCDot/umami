@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Debt Details - Debt Collection Assistant{% endblock %}
+
+{% block content %}
+<div id="debtFormPage"> <!-- Conceptual ID for JS -->
+    <h2 id="debtFormTitle">Add New Debt</h2>
+    <p>For Customer: <strong id="formCustomerName">(Customer ID will be set from context)</strong></p>
+    <p>For Business: <strong id="formBusinessNameDebt">(Business ID will be set from context)</strong></p>
+
+    <form id="debtForm">
+        <input type="hidden" id="debt_id" name="debt_id" value="">
+        <input type="hidden" id="form_customer_id" name="customer_id" value=""> <!-- To be populated by JS -->
+        <input type="hidden" id="form_business_id_debt" name="business_id" value=""> <!-- To be populated by JS -->
+
+        <div>
+            <label for="original_amount">Original Amount:</label>
+            <input type="number" step="0.01" id="original_amount" name="original_amount" required>
+        </div>
+        <div>
+            <label for="outstanding_amount">Outstanding Amount:</label>
+            <input type="number" step="0.01" id="outstanding_amount" name="outstanding_amount" required>
+        </div>
+        <div>
+            <label for="due_date">Due Date:</label>
+            <input type="date" id="due_date" name="due_date">
+        </div>
+        <div>
+            <label for="debt_type">Debt Type (e.g., Invoice, Loan):</label>
+            <input type="text" id="debt_type" name="debt_type">
+        </div>
+        <div>
+            <label for="invoice_number">Invoice Number (if applicable):</label>
+            <input type="text" id="invoice_number" name="invoice_number">
+        </div>
+        <div>
+            <label for="status">Status:</label>
+            <select id="status" name="status" required>
+                <option value="Outstanding">Outstanding</option>
+                <option value="Overdue">Overdue</option>
+                <option value="Paid">Paid</option>
+                <option value="Disputed">Disputed</option>
+                <option value="Pending">Pending</option>
+                <option value="In Collection">In Collection</option>
+            </select>
+        </div>
+        <div>
+            <label for="notes">Notes:</label>
+            <textarea id="notes" name="notes" rows="4"></textarea>
+        </div>
+        <div>
+            <label for="is_archived">Is Archived:</label>
+            <input type="checkbox" id="is_archived" name="is_archived">
+        </div>
+
+        <button type="submit" class="button">Save Debt</button>
+        <a href="#" id="cancelDebtForm" class="button" style="background-color: #6c757d;">Cancel</a>
+        <!-- Cancel button href will be set dynamically by JS to go back to relevant list -->
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+{% endblock %}

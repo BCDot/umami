@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from app.backend.auth.endpoints import router as auth_router
-from app.backend.routers.businesses import router as businesses_router # Corrected alias
+from app.backend.routers.businesses import router as businesses_router
+from app.backend.routers.customers import router as customers_router # New router
+# Removed duplicate import of customers_router
 from app.backend.routers.communications import router as comms_router
 from app.backend.routers.actions import router as actions_router
 from app.backend.routers.reports import router as reports_router
@@ -32,11 +34,12 @@ app = FastAPI(
 # A common practice is to prefix all API routes, e.g., with /api/v1
 API_V1_PREFIX = "/api/v1"
 
-app.include_router(auth_router, prefix=API_V1_PREFIX, tags=["Authentication"]) # auth_router already has /auth prefix
-app.include_router(businesses_router, prefix=API_V1_PREFIX, tags=["Businesses"]) # businesses_router already has /businesses
-app.include_router(comms_router, prefix=API_V1_PREFIX, tags=["Communications"]) # comms_router already has /communications
-app.include_router(actions_router, prefix=API_V1_PREFIX, tags=["Actions"]) # actions_router already has /actions
-app.include_router(reports_router, prefix=API_V1_PREFIX, tags=["Reports"]) # reports_router already has /reports
+app.include_router(auth_router, prefix=API_V1_PREFIX) # Tags are defined in router itself
+app.include_router(businesses_router, prefix=API_V1_PREFIX)
+app.include_router(customers_router, prefix=f"{API_V1_PREFIX}/customers", tags=["Customers"]) # Add prefix here
+app.include_router(comms_router, prefix=API_V1_PREFIX)
+app.include_router(actions_router, prefix=API_V1_PREFIX)
+app.include_router(reports_router, prefix=API_V1_PREFIX)
 
 
 @app.get("/", tags=["Root"])
@@ -67,4 +70,5 @@ async def read_root():
 # If routers do NOT have internal prefixes, the prefix in include_router is the full path segment.
 # My current routers DO have internal prefixes, so the include_router prefix is additive.
 # E.g. actions_router has prefix="/actions", main app includes it with prefix="/api/v1" -> /api/v1/actions/...
+# The customers_router has no internal prefix, so its prefix is fully defined here.
 # This is a common pattern.

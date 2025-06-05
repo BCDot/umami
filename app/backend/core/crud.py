@@ -95,6 +95,19 @@ def get_user_by_username(db: Session, username: str) -> Optional[models.User]:
 
 # ---- Customer CRUD Functions ----
 
+def get_customer_by_id_unscoped(db: Session, customer_id: int) -> Optional[models.Customer]:
+    """Gets a customer by ID without business ownership check. For router use before auth check."""
+    return db.query(models.Customer).filter(models.Customer.id == customer_id).first()
+
+def get_customer_by_id_for_user(db: Session, customer_id: int, user_id: int) -> Optional[models.Customer]:
+    """
+    Fetches a customer by ID only if they belong to a business owned by the specified user_id.
+    """
+    return db.query(models.Customer)\
+        .join(models.Business, models.Customer.business_id == models.Business.id)\
+        .filter(models.Customer.id == customer_id, models.Business.user_id == user_id)\
+        .first()
+
 def create_customer(db: Session, customer: schemas.CustomerCreate) -> models.Customer:
     """
     Create a new customer for a business.

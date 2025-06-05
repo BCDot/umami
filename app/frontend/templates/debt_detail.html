@@ -3,76 +3,57 @@
 {% block title %}Debt Details - Debt Collection Assistant{% endblock %}
 
 {% block content %}
-<h2>Debt Details for ID: {{ debt.id or "DEBTXYZ" }}</h2>
+<div id="debtDetailContainer"> <!-- Main container for JS to know it's on this page -->
+    <h2>Debt Details for ID: <span id="detailDebtId"></span></h2>
 
-<div class="debt-info">
-    <h3>Debt Information</h3>
-    <p><strong>Customer:</strong> {{ debt.customer_name or "Sample Customer Name" }} (<a href="{{ url_for('customer_detail_page', customer_id=debt.customer_id or 'CUSTABC') }}">View Customer</a>)</p>
-    <p><strong>Original Amount:</strong> ${{ debt.original_amount or "1000.00" }}</p>
-    <p><strong>Outstanding Amount:</strong> ${{ debt.outstanding_amount or "750.00" }}</p>
-    <p><strong>Due Date:</strong> {{ debt.due_date or "2023-12-31" }}</p>
-    <p><strong>Status:</strong> {{ debt.status or "Overdue" }}</p>
-    <p><strong>Debt Type:</strong> {{ debt.debt_type or "Invoice" }}</p>
-    <p><strong>Invoice Number:</strong> {{ debt.invoice_number or "INV789" }}</p>
-    <div>
-        <strong>Notes:</strong>
-        <p>{{ debt.notes or "This is a placeholder note about the debt. Customer has been contacted twice." }}</p>
-    </div>
-    <a href="{{ url_for('edit_debt_page', debt_id=debt.id or 'DEBTXYZ') }}" class="button">Edit Debt Information</a>
-</div>
-
-<hr>
-
-<div class="communication-section">
-    <h3>Communication History</h3>
-    <a href="{{ url_for('add_communication_log_page', debt_id=debt.id or 'DEBTXYZ') }}" class="button">Add Communication Log</a>
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Summary/Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Placeholder for communication log rows. Loop through logs here. -->
-            <tr>
-                <td>2023-11-01</td>
-                <td>Email</td>
-                <td>Initial Reminder Sent</td>
-                <td><a href="#">View Log</a></td>
-            </tr>
-            <tr>
-                <td>2023-11-15</td>
-                <td>Phone Call</td>
-                <td>Spoke to customer, promised payment.</td>
-                <td><a href="#">View Log</a></td>
-            </tr>
-            <!-- End placeholder -->
-        </tbody>
-    </table>
-</div>
-
-<hr>
-
-<div class="letter-generation">
-    <h3>Generate Collection Letter</h3>
-    <form method="POST" action="{{ url_for('generate_letter_action', debt_id=debt.id or 'DEBTXYZ') }}">
+    <div class="debt-info">
+        <h3>Debt Information</h3>
+        <p><strong>Customer:</strong> <a href="#" id="detailCustomerLink"><span id="detailCustomerName"></span></a></p>
+        <p><strong>Business:</strong> <span id="detailBusinessName"></span></p>
+        <p><strong>Original Amount:</strong> $<span id="detailDebtOriginalAmount"></span></p>
+        <p><strong>Outstanding Amount:</strong> $<span id="detailDebtOutstandingAmount"></span></p>
+        <p><strong>Due Date:</strong> <span id="detailDebtDueDate"></span></p>
+        <p><strong>Status:</strong> <span id="detailDebtStatus"></span></p>
+        <p><strong>Debt Type:</strong> <span id="detailDebtType"></span></p>
+        <p><strong>Invoice Number:</strong> <span id="detailDebtInvoiceNumber"></span></p>
+        <p><strong>Archived:</strong> <span id="detailDebtIsArchived"></span></p>
         <div>
-            <label for="letter_type">Select Letter Type:</label>
-            <select id="letter_type" name="letter_type">
-                <option value="initial_reminder">Initial Reminder</option>
-                <option value="formal_demand_letter">Formal Demand Letter</option>
-                <option value="final_notice">Final Notice Before Action</option>
-                <!-- Add more letter types as defined -->
-            </select>
+            <strong>Notes:</strong>
+            <p id="detailDebtNotes" style="white-space: pre-wrap;"></p>
         </div>
-        <div>
-            <label for="state_jurisdiction">State/Territory for Legal Context:</label>
-            <select id="state_jurisdiction" name="state">
-                <option value="NSW">New South Wales (NSW)</option>
-                <option value="VIC">Victoria (VIC)</option>
+        <a href="#" id="editDebtLink" class="button">Edit Debt Information</a>
+    </div>
+
+    <hr>
+
+    <div class="communication-section">
+        <h3>Communication History</h3>
+        <!-- Add button for adding new communication log if needed, or handle via specific page -->
+        <ul id="communicationLogsList">
+            <!-- Communication logs will be dynamically inserted here by JavaScript -->
+            <li>Loading communication history...</li>
+        </ul>
+    </div>
+
+    <hr>
+
+    <div class="letter-generation">
+        <h3>Generate Collection Letter</h3>
+        <form id="generateLetterForm" data-debt-id=""> <!-- data-debt-id will be set by JS -->
+            <div>
+                <label for="letter_type">Select Letter Type:</label>
+                <select id="letter_type" name="letter_type"> <!-- Changed from letterType to letter_type -->
+                    <option value="initial_reminder">Initial Reminder</option>
+                    <option value="formal_demand_letter">Formal Demand Letter</option>
+                    <option value="final_notice">Final Notice Before Action</option>
+                    <!-- Add more letter types as defined -->
+                </select>
+            </div>
+            <div>
+                <label for="state_jurisdiction">State/Territory for Legal Context:</label>
+                <select id="state_jurisdiction" name="state"> <!-- Changed from letterState to state -->
+                    <option value="NSW">New South Wales (NSW)</option>
+                    <option value="VIC">Victoria (VIC)</option>
                 <option value="QLD">Queensland (QLD)</option>
                 <option value="WA">Western Australia (WA)</option>
                 <option value="SA">South Australia (SA)</option>

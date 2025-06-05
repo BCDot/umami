@@ -13,11 +13,13 @@
 
 </head>
 <body>
+    <div id="globalMessages" aria-live="polite" style="position: fixed; top: 10px; right: 10px; z-index: 1050; width: 300px;"></div>
     <header>
         <h1>Debt Collection Assistant</h1>
         <nav>
             <a href="{{ url_for('dashboard_page') }}">Dashboard</a> |
-            <a href="{{ url_for('login_page') }}">Login</a>
+            <a href="{{ url_for('login_page') }}">Login</a> |
+            <button id="logoutButton" class="button" style="background-color: #dc3545; margin-left: 15px;">Logout</button>
             <!-- Add more navigation links as needed -->
         </nav>
     </header>

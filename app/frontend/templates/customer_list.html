@@ -3,50 +3,35 @@
 {% block title %}Customers - Debt Collection Assistant{% endblock %}
 
 {% block content %}
-<h2>Customer Management</h2>
-<p>View, add, or edit customer information.</p>
+<div id="customerListPage"> <!-- Conceptual ID for JS -->
+    <h2>Customer Management</h2>
+    <p>For business: <strong id="listBusinessName">(Select a business first)</strong></p>
 
-<a href="{{ url_for('add_customer_page') }}" class="button">Add New Customer</a>
+    <a href="#" id="addNewCustomerBtn" class="button">Add New Customer</a>
+    <!-- Link will be dynamically set by JS or handled by JS to include business_id -->
 
-<h3>All Customers</h3>
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>Total Outstanding Debt</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        <!-- Placeholder for customer rows. Loop through customers here. -->
-        <tr>
-            <td>CUST001</td>
-            <td>John Doe</td>
-            <td>john.doe@example.com</td>
-            <td>555-1234</td>
-            <td>$500.00</td>
-            <td>
-                <a href="{{ url_for('customer_detail_page', customer_id='CUST001') }}">View</a> |
-                <a href="{{ url_for('edit_customer_page', customer_id='CUST001') }}">Edit</a> |
-                <a href="{{ url_for('archive_customer_action', customer_id='CUST001') }}" onclick="return confirm('Are you sure you want to archive this customer?');">Archive</a>
-            </td>
-        </tr>
-        <tr>
-            <td>CUST002</td>
-            <td>Jane Smith</td>
-            <td>jane.smith@example.com</td>
-            <td>555-5678</td>
-            <td>$1250.75</td>
-            <td>
-                <a href="{{ url_for('customer_detail_page', customer_id='CUST002') }}">View</a> |
-                <a href="{{ url_for('edit_customer_page', customer_id='CUST002') }}">Edit</a> |
-                <a href="{{ url_for('archive_customer_action', customer_id='CUST002') }}" onclick="return confirm('Are you sure you want to archive this customer?');">Archive</a>
-            </td>
-        </tr>
-        <!-- End placeholder -->
-    </tbody>
-</table>
+    <h3>All Customers for Selected Business</h3>
+    <table border="1" style="width:100%; border-collapse: collapse;">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Active</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="customerTableBody">
+            <!-- Customer rows will be dynamically inserted here by JavaScript -->
+            <tr>
+                <td colspan="6" style="text-align:center;">Loading customers or select a business...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
 {% endblock %}

@@ -6,11 +6,7 @@ from typing import List # For TokenData scopes, though not directly used in thes
 
 from app.backend.core import crud, schemas, models
 from app.backend.auth import security # Imports verify_password, create_access_token, get_current_active_user, oauth2_scheme
-# Placeholder for get_db dependency - replace with your actual DB session provider
-# This should be the same as used in security.py
-def get_db():
-    print("[AUTH_ENDPOINTS_PLACEHOLDER] get_db() called, returning None for now.")
-    yield None
+from app.backend.db.session import get_db # Updated import
 
 
 router = APIRouter(

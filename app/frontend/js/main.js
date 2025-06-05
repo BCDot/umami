@@ -273,4 +273,97 @@ document.addEventListener('DOMContentLoaded', () => {
     //     const debtId = debtDetailContainer.dataset.debtId;
     //     if(debtId) fetchAndDisplayDebtDetail(debtId); // Or just fetchAndDisplayCommunicationLogs(debtId)
     // }
+
+    // --- Dashboard specific calls ---
+    const dashboardPageElement = document.getElementById('dashboardPage'); // Conceptual ID
+    if (dashboardPageElement) {
+        console.log("Dashboard page detected, fetching reports.");
+        const selectedBusinessId = dashboardPageElement.dataset.businessId || '1'; // Get from data attribute or default
+        if (selectedBusinessId) {
+            fetchAndDisplayReportSummary(selectedBusinessId);
+            fetchAndDisplayDebtStatusReport(selectedBusinessId);
+        } else {
+            console.warn("No business ID found for dashboard reports.");
+        }
+    }
 });
+
+/**
+ * Fetches and displays the report summary for a given business.
+ */
+async function fetchAndDisplayReportSummary(businessId) {
+    console.log(`Fetching report summary for businessId: ${businessId}`);
+    const token = localStorage.getItem('accessToken');
+    // Note: apiRequest already prefixes with /api/v1 if you set it up that way.
+    // If not, ensure the full path is /api/v1/reports/summary/...
+    // My current apiRequest doesn't prefix, so I add it here.
+    const response = await apiRequest(`/api/v1/reports/summary/${businessId}`, 'GET', null, token);
+
+    if (response.ok) {
+        const data = await response.json();
+        console.log('Report Summary:', data);
+
+        // Placeholder for DOM manipulation
+        // const totalOutstandingEl = document.getElementById('totalOutstandingDebt');
+        // if (totalOutstandingEl) totalOutstandingEl.textContent = data.total_outstanding_debt;
+
+        // const overdueAccountsEl = document.getElementById('overdueAccountsCount');
+        // if (overdueAccountsEl) overdueAccountsEl.textContent = data.overdue_accounts_count;
+
+        // const avgOverdueDaysEl = document.getElementById('averageOverdueDays');
+        // if (avgOverdueDaysEl) avgOverdueDaysEl.textContent = parseFloat(data.average_overdue_days).toFixed(2);
+
+        // Example: Update dashboard summary cards if they exist
+        const totalOutstandingCard = document.querySelector('#dashboardTotalOutstanding p'); // More specific selector
+        if (totalOutstandingCard) totalOutstandingCard.textContent = `$${parseFloat(data.total_outstanding_debt).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+        const overdueAccountsCard = document.querySelector('#dashboardOverdueAccounts p');
+        if (overdueAccountsCard) overdueAccountsCard.textContent = data.overdue_accounts_count;
+
+        const avgOverdueDaysCard = document.querySelector('#dashboardAvgOverdueDays p'); // New conceptual ID
+        if (avgOverdueDaysCard) avgOverdueDaysCard.textContent = parseFloat(data.average_overdue_days).toFixed(1) + ' days';
+
+
+    } else {
+        console.error("Failed to fetch report summary:", response.error || `Status: ${response.status}`);
+        // Placeholder for displaying error to user
+        // const summaryContainer = document.getElementById('reportSummaryContainer');
+        // if(summaryContainer) summaryContainer.innerHTML = "<p>Error loading summary.</p>";
+    }
+}
+
+/**
+ * Fetches and displays the debt status report for a given business.
+ */
+async function fetchAndDisplayDebtStatusReport(businessId) {
+    console.log(`Fetching debt status report for businessId: ${businessId}`);
+    const token = localStorage.getItem('accessToken');
+    const response = await apiRequest(`/api/v1/reports/debt-status-breakdown/${businessId}`, 'GET', null, token);
+
+    if (response.ok) {
+        const data = await response.json();
+        console.log('Debt Status Report:', data);
+
+        // Placeholder for DOM manipulation
+        const listElement = document.getElementById('debtStatusList'); // Assumed ID for a <ul> or <div>
+        if (listElement) {
+            listElement.innerHTML = ''; // Clear previous entries
+            if (data.status_breakdown && data.status_breakdown.length > 0) {
+                const ul = document.createElement('ul');
+                data.status_breakdown.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = `${item.status}: ${item.count} debt(s) - Total $${parseFloat(item.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    ul.appendChild(li);
+                });
+                listElement.appendChild(ul);
+            } else {
+                listElement.innerHTML = '<p>No debt status data available.</p>';
+            }
+        }
+    } else {
+        console.error("Failed to fetch debt status report:", response.error || `Status: ${response.status}`);
+        // Placeholder for displaying error to user
+        // const statusContainer = document.getElementById('debtStatusContainer');
+        // if(statusContainer) statusContainer.innerHTML = "<p>Error loading status report.</p>";
+    }
+}

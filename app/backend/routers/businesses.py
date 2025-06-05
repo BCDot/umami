@@ -4,11 +4,7 @@ from typing import List, Optional
 
 from app.backend.core import crud, models, schemas
 from app.backend.auth.security import get_current_active_user # For protecting endpoints
-# Placeholder for get_db dependency - replace with your actual DB session provider
-# This should be the same as used in other router files
-def get_db():
-    print("[BUSINESSES_ROUTER_PLACEHOLDER] get_db() called, returning None for now.")
-    yield None # CRUD operations will not work without a real DB session.
+from app.backend.db.session import get_db # Updated import
 
 
 router = APIRouter(

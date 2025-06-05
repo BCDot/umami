@@ -8,12 +8,7 @@ from sqlalchemy.orm import Session
 
 # Assuming crud and models are in app.backend.core
 from app.backend.core import crud, models, schemas
-# Placeholder for get_db dependency - replace with your actual DB session provider
-# This should be the same as used in other router files like auth/endpoints.py
-def get_db():
-    print("[SECURITY_PLACEHOLDER] get_db() called in security.py, returning None for now.")
-    yield None # CRUD operations will not work without a real DB session.
-
+from app.backend.db.session import get_db # Updated import
 
 # Configuration (should ideally come from environment variables via app.config)
 SECRET_KEY = "your-super-secret-key-that-is-at-least-32-bytes-long"  # Replace with a strong, randomly generated key

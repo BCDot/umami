@@ -3,88 +3,52 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session as SQLAlchemySession
 from sqlalchemy.pool import StaticPool
 from typing import Generator
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.backend.core.models import Base as CoreBase
+from app.main import app as actual_app # Import the actual FastAPI app
+from app.backend.db.session import get_db as central_get_db_dependency # The single get_db to override
 
 # --- Database Setup ---
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:" # Use a unique name for clarity if needed, e.g. "sqlite:///./test_db_for_conftest.db"
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False},
-    poolclass=StaticPool  # Recommended for SQLite in-memory with tests
+    poolclass=StaticPool
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# This fixture will be used by both direct DB tests and endpoint tests (via dependency override)
 @pytest.fixture(scope="function")
 def db() -> Generator[SQLAlchemySession, None, None]:
-    CoreBase.metadata.create_all(bind=engine)  # Create tables for each test
+    CoreBase.metadata.create_all(bind=engine)
     db_session = TestingSessionLocal()
     try:
         yield db_session
     finally:
         db_session.close()
-        CoreBase.metadata.drop_all(bind=engine)  # Drop tables after each test
+        CoreBase.metadata.drop_all(bind=engine)
 
-# --- FastAPI TestClient Setup ---
-minimal_app_for_testing = FastAPI()
-
-# Import routers and their get_db dependencies
-from app.backend.auth.endpoints import router as auth_router, get_db as auth_get_db_dependency
-from app.backend.auth.security import get_db as security_get_db_dependency
-from app.backend.routers.actions import router as actions_router, get_db as actions_get_db_dependency
-from app.backend.routers.businesses import router as businesses_router, get_db as businesses_get_db_dependency
-from app.backend.routers.communications import router as comms_router, get_db as comms_get_db_dependency
-
-# Include routers in the minimal app
-minimal_app_for_testing.include_router(auth_router, prefix="/api/v1")
-minimal_app_for_testing.include_router(actions_router, prefix="/api/v1")
-minimal_app_for_testing.include_router(businesses_router, prefix="/api/v1")
-minimal_app_for_testing.include_router(comms_router, prefix="/api/v1")
-
-# Store the original get_db functions to reset them later if needed, though pytest usually handles fixture teardown well.
-original_dependencies = {
-    "auth": auth_get_db_dependency,
-    "security": security_get_db_dependency,
-    "actions": actions_get_db_dependency,
-    "businesses": businesses_get_db_dependency,
-    "comms": comms_get_db_dependency,
-}
-
-@pytest.fixture(scope="function") # Changed client to function scope to align with db fixture
+@pytest.fixture(scope="function")
 def client(db: SQLAlchemySession) -> Generator[TestClient, None, None]:
     """
     Function-scoped fixture for a FastAPI TestClient.
-    Overrides `get_db` dependencies for all routers to use the function-scoped `db` fixture.
+    Overrides the central `get_db` dependency to use the function-scoped `db` fixture.
     """
     def get_db_override():
         try:
-            yield db # Use the same db session provided by the 'db' fixture
+            yield db
         finally:
-            # The 'db' fixture itself will handle closing/rolling back.
-            # No db.close() here as it's managed by the 'db' fixture.
-            pass
+            pass # The 'db' fixture handles session closing and table dropping
 
-    # Apply overrides
-    minimal_app_for_testing.dependency_overrides[auth_get_db_dependency] = get_db_override
-    minimal_app_for_testing.dependency_overrides[security_get_db_dependency] = get_db_override
-    minimal_app_for_testing.dependency_overrides[actions_get_db_dependency] = get_db_override
-    minimal_app_for_testing.dependency_overrides[businesses_get_db_dependency] = get_db_override
-    minimal_app_for_testing.dependency_overrides[comms_get_db_dependency] = get_db_override
+    original_overrides = actual_app.dependency_overrides.copy()
+    actual_app.dependency_overrides[central_get_db_dependency] = get_db_override
 
-    with TestClient(minimal_app_for_testing) as c:
+    with TestClient(actual_app) as c:
         yield c
 
-    # Clear overrides after the test
-    minimal_app_for_testing.dependency_overrides.clear()
+    actual_app.dependency_overrides = original_overrides # Restore
 
-# Rename the old db_session to db to match the client's dependency name for clarity
-# The `db` fixture above now serves both purposes.
-# If any test files directly import `db_session` from conftest, they'll need to be updated to use `db`.
-# Or, provide `db_session` as an alias for `db`.
 @pytest.fixture(scope="function")
 def db_session(db: SQLAlchemySession) -> SQLAlchemySession:
-    """Alias for the 'db' fixture for tests that might still use 'db_session'."""
+    """Alias for the 'db' fixture, mainly for any direct CRUD tests."""
     return db

@@ -4,12 +4,7 @@ from typing import List, Optional
 
 from app.backend.core import crud, models, schemas # Added models import
 from app.backend.auth.security import get_current_active_user # For protecting endpoints
-# from app.dependencies import get_db # Replace with your actual get_db dependency path
-
-# Placeholder for get_db dependency - replace with your actual DB session provider
-def get_db():
-    print("[COMMUNICATIONS_ROUTER_PLACEHOLDER] get_db() called, returning None for now.")
-    yield None
+from app.backend.db.session import get_db # Updated import
 
 
 router = APIRouter(

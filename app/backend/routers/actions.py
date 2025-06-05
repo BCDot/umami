@@ -5,11 +5,7 @@ from datetime import datetime, timezone # Added timezone for utcnow comparison
 from app.backend.core import crud, models, schemas
 from app.backend.auth.security import get_current_active_user
 from app.backend.llm.letter_generator import generate_letter_content
-
-# Placeholder for get_db dependency
-def get_db():
-    print("[ACTIONS_ROUTER_PLACEHOLDER] get_db() called, returning None for now.")
-    yield None
+from app.backend.db.session import get_db # Updated import
 
 router = APIRouter(
     prefix="/actions",

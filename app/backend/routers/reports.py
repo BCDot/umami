@@ -1,36 +1,43 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Dict # Added Dict for consistency
+from typing import List, Dict
 from decimal import Decimal
 
-from app.backend.core import schemas # Schemas for request/response
-from app.backend.core import reports as report_functions # Report generation functions
-# from app.dependencies import get_db # Replace with your actual get_db dependency path
-
-# Placeholder for get_db dependency - replace with your actual DB session provider
-def get_db():
-    print("[REPORTS_ROUTER_PLACEHOLDER] get_db() called, returning None for now.")
-    yield None # CRUD/reporting operations will not work without a real DB session.
+from app.backend.core import schemas, models # Added models for current_user type hint
+from app.backend.core import reports as report_functions
+from app.backend.db.session import get_db
+from app.backend.auth.security import get_current_active_user # For authorization
 
 router = APIRouter(
     prefix="/reports",
     tags=["Reports"],
 )
 
+def _check_business_ownership(current_user: models.User, requested_business_id: int):
+    """Helper to check if the requested business_id is owned by the current user."""
+    if not any(business.id == requested_business_id for business in current_user.businesses):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access reports for this business."
+        )
+
 @router.get("/summary/{business_id}", response_model=schemas.ReportSummarySchema)
-async def get_reports_summary(business_id: int, db: Session = Depends(get_db)):
+async def get_reports_summary(
+    business_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
     """
     Retrieve a summary report for a given business, including total outstanding debt,
     count of overdue accounts, and average overdue days.
+    User must own the business.
     """
+    _check_business_ownership(current_user, business_id)
+
     if not db:
-        # Simulate data if DB is not available due to placeholder
-        print(f"[REPORTS_ROUTER_PLACEHOLDER] DB not configured for business_id: {business_id}. Returning dummy summary.")
-        return schemas.ReportSummarySchema(
-            total_outstanding_debt=Decimal("12345.67"),
-            overdue_accounts_count=15,
-            average_overdue_days=45.2
-        )
+        # This case should ideally not be hit if get_db provides a session or raises an error.
+        # If it does, it's an internal server issue.
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database not configured")
 
     total_outstanding = report_functions.get_total_outstanding_debt(db, business_id=business_id)
     overdue_count = report_functions.get_overdue_accounts_count(db, business_id=business_id)
@@ -43,20 +50,19 @@ async def get_reports_summary(business_id: int, db: Session = Depends(get_db)):
     )
 
 @router.get("/debt-status-breakdown/{business_id}", response_model=schemas.DebtStatusReportSchema)
-async def get_debt_status_breakdown_report(business_id: int, db: Session = Depends(get_db)):
+async def get_debt_status_breakdown_report(
+    business_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
     """
     Retrieve a report breaking down debts by their status (e.g., Outstanding, Paid, Overdue)
-    including count and total amount for each status.
+    including count and total amount for each status. User must own the business.
     """
+    _check_business_ownership(current_user, business_id)
+
     if not db:
-        # Simulate data if DB is not available
-        print(f"[REPORTS_ROUTER_PLACEHOLDER] DB not configured for business_id: {business_id}. Returning dummy status breakdown.")
-        dummy_breakdown = [
-            schemas.DebtStatusItemSchema(status="Outstanding", count=10, total_amount=Decimal("8000.00")),
-            schemas.DebtStatusItemSchema(status="Overdue", count=5, total_amount=Decimal("4345.67")),
-            schemas.DebtStatusItemSchema(status="Paid", count=50, total_amount=Decimal("25000.00")),
-        ]
-        return schemas.DebtStatusReportSchema(status_breakdown=dummy_breakdown)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Database not configured")
 
     status_summary_data = report_functions.get_debt_status_summary(db, business_id=business_id)
 

@@ -140,6 +140,91 @@ async function fetchAndDisplayDebtsForBusiness(businessId) {
     }
 }
 
+// --- Email and Communication Logging Helpers ---
+function handleComposeEmail(event) {
+    if (!checkAuth()) return;
+    const recipient = document.getElementById('emailRecipient')?.textContent || '';
+    const subject = document.getElementById('emailSubject')?.value || '';
+    const body = document.getElementById('letterPreviewTextArea')?.value || '';
+
+    if (!recipient || recipient === 'N/A') {
+        displayGlobalMessage('Recipient email not available.', 'error');
+        return;
+    }
+
+    const mailtoLink = `mailto:${encodeURIComponent(recipient)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoLink;
+    displayGlobalMessage('Attempting to open your email client...', 'info');
+}
+
+async function handleCopyEmailSubject(event) {
+    if (!checkAuth()) return;
+    const subject = document.getElementById('emailSubject')?.value;
+    if (subject) {
+        try {
+            await navigator.clipboard.writeText(subject);
+            displayGlobalMessage('Email subject copied to clipboard!', 'success');
+        } catch (err) {
+            console.error('Failed to copy subject: ', err);
+            displayGlobalMessage('Failed to copy subject. Your browser might not support this feature or permission was denied.', 'error');
+        }
+    } else {
+        displayGlobalMessage('No subject to copy.', 'error');
+    }
+}
+
+async function handleCopyEmailBody(event) {
+    if (!checkAuth()) return;
+    const body = document.getElementById('letterPreviewTextArea')?.value;
+    if (body) {
+        try {
+            await navigator.clipboard.writeText(body);
+            displayGlobalMessage('Email body copied to clipboard!', 'success');
+        } catch (err) {
+            console.error('Failed to copy body: ', err);
+            displayGlobalMessage('Failed to copy body. Your browser might not support this feature or permission was denied.', 'error');
+        }
+    } else {
+        displayGlobalMessage('No email body to copy.', 'error');
+    }
+}
+
+async function logCommunicationEntry(debtId, communicationType, contentSnapshot, status = 'Logged', buttonElement = null) {
+    if (!checkAuth()) return;
+    let originalButtonText;
+    if (buttonElement) {
+        originalButtonText = buttonElement.textContent;
+        buttonElement.textContent = 'Logging...';
+        buttonElement.disabled = true;
+    }
+
+    const communicationData = {
+        debt_id: parseInt(debtId), // Ensure debt_id is in the payload
+        communication_type: communicationType,
+        generated_content_snapshot: contentSnapshot,
+        status: status,
+        // llm_prompt_used and response_received can be added if available/relevant
+    };
+    const token = localStorage.getItem('accessToken');
+
+    try {
+        // Assuming API endpoint is /api/v1/communications/ (plural)
+        await apiRequest(`/api/v1/communications/`, 'POST', communicationData, token);
+        displayGlobalMessage('Communication logged successfully!', 'success');
+        if (debtId) { // Refresh logs if debtId is known
+            fetchAndDisplayCommunicationLogs(debtId);
+        }
+    } catch (error) {
+        const errorMsg = error.data?.detail || 'Failed to log communication.';
+        displayGlobalMessage(errorMsg, 'error');
+    } finally {
+        if (buttonElement) {
+            buttonElement.textContent = originalButtonText;
+            buttonElement.disabled = false;
+        }
+    }
+}
+
 async function fetchAndDisplayDebtsForCustomer(customerId, businessId) {
     if (!checkAuth() || !customerId) return;
     const tableBody = document.getElementById('debtTableBodyOnCustomerDetail') || document.getElementById('debtTableBody');
@@ -275,6 +360,62 @@ async function fetchAndDisplayPaymentsForDebt(debtId) {
     }
 }
 
+async function prepareEmailContent(debtId, letterType, state) {
+    if (!checkAuth()) return;
+
+    // Consider adding a specific loading state for the email section if desired
+    // e.g., document.getElementById('composeEmailBtn').disabled = true;
+    //      document.getElementById('composeEmailBtn').textContent = 'Preparing Email...';
+
+    const requestBody = { letter_type: letterType, state: state };
+    const token = localStorage.getItem('accessToken');
+
+    try {
+        const responseData = await apiRequest(`/api/v1/actions/debts/${debtId}/generate-email-content`, 'POST', requestBody, token);
+
+        // Assuming apiRequest now standardly returns the actual data in responseData.data
+        // If apiRequest returns the direct response object, and data is responseData.json(), this needs adjustment
+        // Based on previous patterns, apiRequest is expected to have processed .json() and error handling,
+        // returning the parsed data directly or an object with a .data property.
+        // The prompt implies responseData.data.recipient_email, so let's assume responseData is the outer object.
+        const emailInfo = responseData.data;
+
+        if (document.getElementById('emailRecipient')) {
+            document.getElementById('emailRecipient').textContent = emailInfo.recipient_email;
+        }
+        if (document.getElementById('emailSubject')) {
+            document.getElementById('emailSubject').value = emailInfo.subject;
+        }
+        // Also update the main letter preview text area with the (potentially email-specific) body
+        if (document.getElementById('letterPreviewTextArea')) {
+            document.getElementById('letterPreviewTextArea').value = emailInfo.body;
+        }
+
+        if (document.getElementById('emailSendingAidSection')) {
+            document.getElementById('emailSendingAidSection').style.display = 'block';
+        }
+
+        // Set data attributes on the "Mark as Emailed" button
+        const markAsEmailedBtn = document.getElementById('markAsEmailedBtn');
+        if (markAsEmailedBtn) {
+            markAsEmailedBtn.dataset.debtId = debtId;
+            markAsEmailedBtn.dataset.letterType = letterType; // letterType from function params
+        }
+
+        displayGlobalMessage('Email content prepared and ready for review.', 'success');
+
+    } catch (error) {
+        displayGlobalMessage(`Failed to prepare email content: ${error.data?.detail || error.message || 'Unknown error'}`, 'error');
+        if (document.getElementById('emailSendingAidSection')) {
+            document.getElementById('emailSendingAidSection').style.display = 'none';
+        }
+    } finally {
+        // Re-enable buttons if they were disabled
+        // e.g., document.getElementById('composeEmailBtn').disabled = false;
+        //      document.getElementById('composeEmailBtn').textContent = 'Compose in Default Client';
+    }
+}
+
 async function handleLogPaymentSubmit(event) {
     event.preventDefault();
     if (!checkAuth()) return;
@@ -353,8 +494,135 @@ async function handleLogPaymentSubmit(event) {
 }
 
 
-async function generateLetterPreview(event) { /* ... (from subtask 31 - complete) ... */ }
-async function logSentLetter(event) { /* ... (from subtask 31 - complete) ... */ }
+async function generateLetterPreview(event) {
+    event.preventDefault();
+    if (!checkAuth()) return;
+
+    const form = event.target;
+    const debtId = form.dataset.debtId;
+    const letterType = form.letter_type.value;
+    const state = form.state_jurisdiction.value;
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalButtonText = submitButton.textContent;
+
+    submitButton.textContent = 'Generating...';
+    submitButton.disabled = true;
+
+    const letterPreviewDiv = document.getElementById('letter-preview');
+    let letterPreviewTextArea = document.getElementById('letterPreviewTextArea');
+    let logLetterButton = document.getElementById('logLetterButton');
+
+    // Clear previous preview and hide email section initially
+    if (letterPreviewTextArea) letterPreviewTextArea.value = 'Generating preview...';
+    else if(letterPreviewDiv) { // If textarea doesn't exist yet, clear the div
+        const pMessage = letterPreviewDiv.querySelector('p');
+        if(pMessage) pMessage.textContent = 'Generating preview...';
+    }
+
+    const emailSection = document.getElementById('emailSendingAidSection');
+    if (emailSection) emailSection.style.display = 'none';
+
+
+    const requestBody = { letter_type: letterType, state: state };
+    const token = localStorage.getItem('accessToken');
+
+    try {
+        const responseData = await apiRequest(`/api/v1/actions/debts/${debtId}/generate-letter-preview`, 'POST', requestBody, token);
+
+        if (!letterPreviewTextArea && letterPreviewDiv) {
+            letterPreviewDiv.innerHTML = ''; // Clear "Generating preview..."
+            letterPreviewTextArea = document.createElement('textarea');
+            letterPreviewTextArea.id = 'letterPreviewTextArea';
+            letterPreviewTextArea.readOnly = true;
+            letterPreviewTextArea.style.width = '100%';
+            letterPreviewTextArea.style.minHeight = '250px';
+            letterPreviewDiv.appendChild(letterPreviewTextArea);
+        }
+        letterPreviewTextArea.value = responseData.data.content;
+
+        if (!logLetterButton && letterPreviewDiv) {
+            logLetterButton = document.createElement('button');
+            logLetterButton.id = 'logLetterButton';
+            logLetterButton.className = 'button';
+            logLetterButton.style.marginTop = '10px';
+            logLetterButton.textContent = 'Log Letter as Sent (Physical/Post)';
+            letterPreviewDiv.appendChild(logLetterButton);
+            // Event listener for logLetterButton is attached in DOMContentLoaded
+        }
+        if(logLetterButton) {
+             logLetterButton.style.display = 'inline-block';
+             logLetterButton.dataset.debtId = debtId; // Ensure debtId is available
+             logLetterButton.dataset.letterType = letterType; // Ensure letterType is available
+        }
+
+
+        await prepareEmailContent(debtId, letterType, state);
+
+    } catch (error) {
+        const errorMsg = error.data?.detail || error.message || 'Unknown error';
+        if (letterPreviewTextArea) letterPreviewTextArea.value = `Error generating preview: ${errorMsg}`;
+        else if(letterPreviewDiv) {
+            const pMessage = letterPreviewDiv.querySelector('p');
+            if(pMessage) pMessage.innerHTML = `<span class="error-message">Error generating preview: ${errorMsg}</span>`;
+            else letterPreviewDiv.innerHTML = `<p class="error-message">Error generating preview: ${errorMsg}</p>`;
+        }
+        displayGlobalMessage(`Failed to generate letter preview: ${errorMsg}`, 'error');
+        if(logLetterButton) logLetterButton.style.display = 'none';
+        if(emailSection) emailSection.style.display = 'none';
+    } finally {
+        submitButton.textContent = originalButtonText;
+        submitButton.disabled = false;
+    }
+}
+
+async function logSentLetter(event) {
+    if (!checkAuth()) return;
+    const button = event.currentTarget; // Use currentTarget for dynamically added buttons
+    const debtId = button.dataset.debtId;
+    let letterType = button.dataset.letterType;
+
+    // Fallback if letterType is not on button, try to get from form (though less reliable if form changes)
+    if (!letterType) {
+        const letterTypeSelect = document.getElementById('letter_type');
+        if (letterTypeSelect) letterType = letterTypeSelect.value;
+        else letterType = "Unknown"; // Default if absolutely not found
+    }
+
+    const letterContent = document.getElementById('letterPreviewTextArea')?.value;
+
+    if (!debtId || !letterContent) {
+        displayGlobalMessage('Cannot log letter: Missing debt ID or letter content.', 'error');
+        return;
+    }
+    // Pass the button itself for state management
+    await logCommunicationEntry(debtId, `Letter - ${letterType}`, letterContent, 'Logged as Sent (Physical)', button);
+}
+
+async function handleMarkAsEmailed(event) {
+    if (!checkAuth()) return;
+    const button = event.currentTarget;
+    const debtId = button.dataset.debtId;
+    let letterType = button.dataset.letterType;
+
+    // Fallback for letterType if not set on button (e.g. if prepareEmailContent failed to set it)
+    if (!letterType) {
+        const letterTypeSelect = document.getElementById('letter_type');
+        if (letterTypeSelect) letterType = letterTypeSelect.value;
+        else letterType = "Unknown Email Type";
+    }
+
+    const emailBody = document.getElementById('letterPreviewTextArea')?.value;
+    const emailSubject = document.getElementById('emailSubject')?.value;
+
+    if (!debtId || !emailBody || !emailSubject) {
+        displayGlobalMessage('Cannot log email: Missing debt ID, email body, or subject.', 'error');
+        return;
+    }
+
+    const contentSnapshot = `Subject: ${emailSubject}\n\n${emailBody}`;
+    await logCommunicationEntry(debtId, `Email - ${letterType}`, contentSnapshot, 'Emailed (User Confirmed)', button);
+}
+
 
 // --- Report Fetching and Display Functions ---
 async function fetchAndDisplayReportSummary(businessId) { /* ... (from subtask 31 - complete) ... */ }
@@ -579,13 +847,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (showLogPaymentFormBtn && logPaymentFormContainer && logPaymentForm) {
                 showLogPaymentFormBtn.addEventListener('click', () => {
-                    // Get debtId from a reliable source on the page, e.g., the letter form's dataset
                     const currentDebtId = document.getElementById('generateLetterForm')?.dataset.debtId || debtId;
                     document.getElementById('paymentFormDebtId').value = currentDebtId;
-                    document.getElementById('payment_date_payment_form').value = new Date().toISOString().split('T')[0]; // Default to today
-                    logPaymentForm.reset(); // Clear previous entries first
-                    document.getElementById('paymentFormDebtId').value = currentDebtId; // Re-set debtId after reset
-                    document.getElementById('payment_date_payment_form').value = new Date().toISOString().split('T')[0]; // Re-set date after reset
+                    document.getElementById('payment_date_payment_form').value = new Date().toISOString().split('T')[0];
+                    logPaymentForm.reset();
+                    document.getElementById('paymentFormDebtId').value = currentDebtId;
+                    document.getElementById('payment_date_payment_form').value = new Date().toISOString().split('T')[0];
                     clearAllFormErrors(logPaymentForm);
                     logPaymentFormContainer.style.display = 'block';
                 });
@@ -602,6 +869,32 @@ document.addEventListener('DOMContentLoaded', () => {
             if (logPaymentForm) {
                 logPaymentForm.addEventListener('submit', handleLogPaymentSubmit);
             }
+
+            // Email Aid Section Event Listeners
+            const composeEmailBtn = document.getElementById('composeEmailBtn');
+            if (composeEmailBtn) composeEmailBtn.addEventListener('click', handleComposeEmail);
+
+            const copyEmailSubjectBtn = document.getElementById('copyEmailSubjectBtn');
+            if (copyEmailSubjectBtn) copyEmailSubjectBtn.addEventListener('click', handleCopyEmailSubject);
+
+            const copyEmailBodyBtn = document.getElementById('copyEmailBodyBtn');
+            if (copyEmailBodyBtn) copyEmailBodyBtn.addEventListener('click', handleCopyEmailBody);
+
+            const markAsEmailedBtn = document.getElementById('markAsEmailedBtn');
+            if (markAsEmailedBtn) markAsEmailedBtn.addEventListener('click', handleMarkAsEmailed);
+
+            // Existing Log Letter Button (listener might be dynamically added if button is dynamic)
+            // If #logLetterButton is always in HTML but hidden, add listener here.
+            // If it's created by generateLetterPreview, listener should be there.
+            // generateLetterPreview was updated to add listener if it creates the button.
+            // If it's static in HTML (but perhaps hidden/shown):
+            const staticLogLetterButton = document.getElementById('logLetterButton');
+            if (staticLogLetterButton) {
+                // Ensure data attributes are set if this static button is used
+                // This might be redundant if generateLetterPreview always creates/updates its own button
+                staticLogLetterButton.addEventListener('click', logSentLetter);
+            }
+
 
         } else {
             debtDetailPageContainer.innerHTML = '<p class="error-message">No debt ID provided.</p>';

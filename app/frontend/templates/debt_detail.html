@@ -92,6 +92,31 @@
     <div id="letter-preview" style="margin-top: 15px; padding:10px; border: 1px solid #eee; background-color: #f9f9f9;">
         <h4>Letter Preview:</h4>
         <p><em>Letter content will be shown here after generation...</em></p>
+        <!-- JS might replace the <p> above with a textarea and button -->
+        <!-- For example: -->
+        <!-- <textarea id="letterPreviewTextArea" readonly style="width: 100%; min-height: 200px;"></textarea> -->
+        <!-- <button id="logLetterButton" class="button" style="margin-top:10px;">Log Letter as Sent</button> -->
+    </div>
+
+    <div id="emailSendingAidSection" class="detail-section" style="display:none; margin-top: 20px;">
+        <h3>Prepare and Send Email</h3>
+        <div>
+            <strong>Recipient:</strong> <span id="emailRecipient">N/A</span>
+        </div>
+        <div style="margin-top: 10px;">
+            <label for="emailSubject" style="font-weight: bold; display: block; margin-bottom: 5px;">Subject:</label>
+            <input type="text" id="emailSubject" readonly style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; background-color: #f9f9f9;">
+        </div>
+        <div style="margin-top: 10px;">
+            <p style="font-weight: bold;">Body (from letter preview above):</p>
+            <!-- Note: The #letterPreviewTextArea is assumed to hold the body -->
+        </div>
+        <div style="margin-top: 15px; display: flex; flex-wrap: wrap; gap: 10px;">
+            <button id="composeEmailBtn" class="button">Compose in Default Client</button>
+            <button id="copyEmailSubjectBtn" class="button button-secondary">Copy Subject</button>
+            <button id="copyEmailBodyBtn" class="button button-secondary">Copy Body</button>
+            <button id="markAsEmailedBtn" class="button">Log Email as Sent</button>
+        </div>
     </div>
 </div>
 {% endblock %}

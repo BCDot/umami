@@ -61,7 +61,56 @@ def test_debt(db_session: Session, test_customer: models.Customer, test_business
     )
     return crud.create_debt(db=db_session, debt=debt_schema)
 
-# --- Tests ---
+@pytest.fixture(scope="function")
+def other_user_data() -> dict:
+    return {"username": "actionotheruser", "email": "actionother@example.com", "password": "otherpassword"}
+
+@pytest.fixture(scope="function")
+def other_user(db_session: Session, other_user_data: dict) -> models.User:
+    user_schema = schemas.UserCreate(**other_user_data)
+    return crud.create_user(db=db_session, user=user_schema)
+
+@pytest.fixture(scope="function")
+def other_user_auth_headers(other_user: models.User) -> Dict[str, str]:
+    access_token = create_access_token(
+        data={"sub": other_user.username},
+        expires_delta=timedelta(minutes=15)
+    )
+    return {"Authorization": f"Bearer {access_token}"}
+
+@pytest.fixture(scope="function")
+def test_customer_no_email(db_session: Session, test_business: models.Business) -> models.Customer:
+    customer_schema = schemas.CustomerCreate(
+        customer_name="Action Test Customer NoEmail",
+        email="no-email-provided@example.com", # Placeholder, actual email is None in DB
+        address="456 NoEmail Ave",
+        business_id=test_business.id
+    )
+    customer = crud.create_customer(db=db_session, customer=customer_schema)
+    customer.email = None # Explicitly set email to None after creation
+    db_session.add(customer)
+    db_session.commit()
+    db_session.refresh(customer)
+    return customer
+
+@pytest.fixture(scope="function")
+def test_debt_with_customer_no_email(
+    db_session: Session,
+    test_customer_no_email: models.Customer,
+    test_business: models.Business
+) -> models.Debt:
+    debt_schema = schemas.DebtCreate(
+        original_amount=500.00,
+        outstanding_amount=500.00,
+        due_date=date.today() - timedelta(days=30),
+        status="Outstanding",
+        customer_id=test_customer_no_email.id,
+        business_id=test_business.id
+    )
+    return crud.create_debt(db=db_session, debt=debt_schema)
+
+
+# --- Tests for Letter Preview (existing) ---
 
 def test_generate_letter_preview_success(
     client: TestClient,
@@ -133,10 +182,11 @@ def test_generate_letter_preview_debt_not_found(
     # The error would then be about the specific debt not being found for that user's business context.
     # However, the get_authorized_business_id() is called first in the endpoint.
     # If test_user_owner fixture doesn't create a business for this specific test, it will be 403.
-    # The fixture `auth_headers` uses `test_user_owner`. `test_user_owner` itself doesn't create a business.
-    # Other fixtures `test_business` do, but this test doesn't depend on `test_business`.
-    # So, the user `actionowner` will not have `current_user.businesses` populated.
-    assert "User has no associated businesses." in response.json()["detail"]
+    # The fixture `auth_headers` uses `test_user_owner`. `test_user_owner` has `test_business` associated.
+    # This test now checks for a debt ID that doesn't exist for this authorized user.
+    # The `get_authorized_business_id` will pass, but `crud.get_debt` will return None.
+    assert response.status_code == 404
+    assert "Debt not found or not authorized for this user." in response.json()["detail"]
 
 
 def test_generate_letter_preview_unauthenticated(client: TestClient, test_debt: models.Debt):
@@ -148,3 +198,124 @@ def test_generate_letter_preview_unauthenticated(client: TestClient, test_debt: 
     )
     assert response.status_code == 401 # Expecting 401 Unauthorized
     assert "Not authenticated" in response.json()["detail"]
+
+
+# --- Tests for Email Content Generation (New) ---
+
+def test_generate_email_content_success(
+    client: TestClient,
+    db_session: Session, # db_session fixture from conftest.py
+    auth_headers: Dict[str, str],
+    test_debt: models.Debt,
+    test_customer: models.Customer,
+    test_business: models.Business
+):
+    letter_request_data = {'letter_type': 'Initial Reminder', 'state': 'QLD'}
+
+    # Ensure test_debt is linked to test_customer and test_business correctly for the test
+    assert test_debt.customer_id == test_customer.id
+    assert test_debt.business_id == test_business.id
+    assert test_customer.email is not None
+
+    with patch('app.backend.routers.actions.generate_letter_content', return_value="Mocked email body") as mock_generate_letter:
+        response = client.post(
+            f"{API_V1_PREFIX}/actions/debts/{test_debt.id}/generate-email-content",
+            json=letter_request_data,
+            headers=auth_headers
+        )
+
+    assert response.status_code == 200
+    email_content_response = schemas.EmailContentResponse(**response.json()) # Validate schema
+
+    assert email_content_response.recipient_email == test_customer.email
+    expected_subject = f"Regarding Your Account with {test_business.business_name} - Ref: {test_debt.invoice_number or test_debt.id}"
+    assert email_content_response.subject == expected_subject
+    assert email_content_response.body == "Mocked email body"
+
+    mock_generate_letter.assert_called_once()
+    call_args = mock_generate_letter.call_args[1] # .kwargs
+    assert call_args['letter_type'] == 'Initial Reminder'
+    assert call_args['state'] == 'QLD'
+    # Check is_potentially_statute_barred based on test_debt's due_date (set to 2010-01-01)
+    assert call_args['debt_data']['is_potentially_statute_barred'] is True
+
+
+def test_generate_email_content_unauthorized_debt(
+    client: TestClient,
+    other_user_auth_headers: Dict[str, str],
+    test_debt: models.Debt
+):
+    """Test accessing debt belonging to another user."""
+    letter_request_data = {'letter_type': 'Initial Reminder', 'state': 'NSW'}
+    response = client.post(
+        f"{API_V1_PREFIX}/actions/debts/{test_debt.id}/generate-email-content",
+        json=letter_request_data,
+        headers=other_user_auth_headers # Using headers for a different user
+    )
+    assert response.status_code == 404 # get_debt_by_id_for_user will not find it
+    assert "Debt not found or not authorized for this user." in response.json()["detail"]
+
+
+def test_generate_email_content_debt_not_found(
+    client: TestClient,
+    auth_headers: Dict[str, str]
+):
+    """Test with a non-existent debt ID."""
+    non_existent_debt_id = 999888
+    letter_request_data = {'letter_type': 'Initial Reminder', 'state': 'NSW'}
+    response = client.post(
+        f"{API_V1_PREFIX}/actions/debts/{non_existent_debt_id}/generate-email-content",
+        json=letter_request_data,
+        headers=auth_headers
+    )
+    assert response.status_code == 404
+    assert "Debt not found or not authorized for this user." in response.json()["detail"]
+
+
+def test_generate_email_content_customer_email_missing(
+    client: TestClient,
+    auth_headers: Dict[str, str],
+    test_debt_with_customer_no_email: models.Debt # Uses the new fixture
+):
+    letter_request_data = {'letter_type': 'Initial Reminder', 'state': 'SA'}
+    response = client.post(
+        f"{API_V1_PREFIX}/actions/debts/{test_debt_with_customer_no_email.id}/generate-email-content",
+        json=letter_request_data,
+        headers=auth_headers
+    )
+    assert response.status_code == 400
+    assert "Customer email not found for this debt." in response.json()["detail"]
+
+
+def test_generate_email_content_llm_error_api_key(
+    client: TestClient,
+    auth_headers: Dict[str, str],
+    test_debt: models.Debt
+):
+    letter_request_data = {'letter_type': 'Initial Reminder', 'state': 'WA'}
+    with patch('app.backend.routers.actions.generate_letter_content',
+               return_value="Error generating letter: LLM API key not configured.") as mock_llm:
+        response = client.post(
+            f"{API_V1_PREFIX}/actions/debts/{test_debt.id}/generate-email-content",
+            json=letter_request_data,
+            headers=auth_headers
+        )
+    assert response.status_code == 503
+    assert "Error generating letter: LLM API key not configured." in response.json()["detail"]
+
+
+def test_generate_email_content_llm_general_error(
+    client: TestClient,
+    auth_headers: Dict[str, str],
+    test_debt: models.Debt
+):
+    letter_request_data = {'letter_type': 'Initial Reminder', 'state': 'TAS'}
+    with patch('app.backend.routers.actions.generate_letter_content',
+               return_value="Error generating letter: Some other error.") as mock_llm:
+        response = client.post(
+            f"{API_V1_PREFIX}/actions/debts/{test_debt.id}/generate-email-content",
+            json=letter_request_data,
+            headers=auth_headers
+        )
+    assert response.status_code == 500
+    assert "Error generating letter: Some other error." in response.json()["detail"]

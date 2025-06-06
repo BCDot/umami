@@ -229,6 +229,11 @@ class LetterGenerationRequest(BaseModel):
 class PlainTextResponse(BaseModel):
     content: str
 
+class EmailContentResponse(BaseModel):
+    recipient_email: str
+    subject: str
+    body: str
+
 # ---- Reporting Schemas ----
 class ReportSummarySchema(BaseModel):
     total_outstanding_debt: Decimal
@@ -242,3 +247,5 @@ class DebtStatusItemSchema(BaseModel):
 
 class DebtStatusReportSchema(BaseModel):
     status_breakdown: List[DebtStatusItemSchema]
+
+EmailContentResponse.model_rebuild()

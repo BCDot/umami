@@ -93,6 +93,34 @@ def get_user_by_username(db: Session, username: str) -> Optional[models.User]:
     """
     return db.query(models.User).filter(models.User.username == username).first()
 
+def update_user(db: Session, user_id: int, user_update: schemas.UserUpdate) -> Optional[models.User]:
+    """Update an existing user."""
+    db_user = get_user(db, user_id=user_id)
+    if not db_user:
+        return None
+
+    update_data = user_update.model_dump(exclude_unset=True)
+    from app.backend.auth.security import get_password_hash # Avoid circular import at top level
+
+    for key, value in update_data.items():
+        if key == "password" and value is not None:
+            setattr(db_user, "hashed_password", get_password_hash(value))
+        elif value is not None: # Ensure not to set None values unless intended by schema
+            setattr(db_user, key, value)
+
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def delete_user(db: Session, user_id: int) -> Optional[models.User]:
+    """Soft delete a user by setting is_active to False."""
+    db_user = get_user(db, user_id=user_id)
+    if db_user:
+        db_user.is_active = False
+        db.commit()
+        db.refresh(db_user)
+    return db_user
+
 # ---- Customer CRUD Functions ----
 
 def get_customer_by_id_unscoped(db: Session, customer_id: int) -> Optional[models.Customer]:

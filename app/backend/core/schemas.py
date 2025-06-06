@@ -1,6 +1,6 @@
 from __future__ import annotations # Enables postponed evaluation of type annotations
-from pydantic import BaseModel, ConfigDict
-from typing import Optional, List
+from pydantic import BaseModel, ConfigDict, model_validator
+from typing import Optional, List, Any
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -45,6 +45,17 @@ class DebtBase(BaseModel):
     customer_id: int
     business_id: int
 
+    @model_validator(mode='after')
+    def check_amounts(cls, values: Any) -> Any: # Changed values to Any, or specific model type
+        # If 'values' is the model instance itself for Pydantic v2 'after' mode
+        original_amount = getattr(values, 'original_amount', None)
+        outstanding_amount = getattr(values, 'outstanding_amount', None)
+
+        if original_amount is not None and outstanding_amount is not None:
+            if outstanding_amount > original_amount:
+                raise ValueError('Outstanding amount cannot be greater than original amount.')
+        return values
+
 class DebtCreate(DebtBase):
     pass
 
@@ -56,7 +67,18 @@ class DebtUpdate(BaseModel):
     invoice_number: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = None
-    is_archived: Optional[bool] = None # New field for updates
+    is_archived: Optional[bool] = None
+
+    @model_validator(mode='after')
+    def check_amounts_update(cls, values: Any) -> Any:
+        # For DebtUpdate, fields are optional. Only validate if both are provided and not None.
+        original_amount = getattr(values, 'original_amount', None)
+        outstanding_amount = getattr(values, 'outstanding_amount', None)
+
+        if original_amount is not None and outstanding_amount is not None:
+            if outstanding_amount > original_amount:
+                raise ValueError('Outstanding amount cannot be greater than original amount.')
+        return values
 
 class Debt(DebtBase):
     id: int

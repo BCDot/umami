@@ -11,6 +11,17 @@ router = APIRouter(
     tags=["Debts"],
 )
 
+# Helper function for business ownership verification (copied from customers.py or make it common)
+def _verify_business_ownership_for_debt_router(db: Session, current_user: models.User, business_id: int):
+    """Verifies that the current user owns the specified business for debt operations."""
+    business = crud.get_business(db, business_id=business_id, user_id=current_user.id)
+    if not business:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Business not found or not authorized for this user."
+        )
+    return business # Return business if found and authorized
+
 def _verify_customer_and_business_ownership(db: Session, current_user: models.User, business_id: int, customer_id: int):
     """
     Verifies that the current user owns the business, and the customer belongs to that business.
@@ -56,25 +67,26 @@ async def list_debts_endpoint(
     - One of `business_id` or `customer_id` must be provided.
     """
     if business_id:
-        business = crud.get_business(db, business_id=business_id, user_id=current_user.id)
-        if not business:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Business not found or not authorized.")
+        # Verify user owns this business_id
+        _verify_business_ownership_for_debt_router(db, current_user, business_id)
+        # business = crud.get_business(db, business_id=business_id, user_id=current_user.id)
+        # if not business: # This check is now in the helper above
+        #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Business not found or not authorized.")
         return crud.get_all_debts_by_business(db=db, business_id=business_id, skip=skip, limit=limit)
     elif customer_id:
-        # To list by customer_id securely, we must ensure that customer belongs to one of the user's businesses.
-        # We can fetch the customer and check its business_id's ownership.
-        # This requires knowing which business the customer belongs to if we are to use get_all_debts_by_customer.
-        # A simpler approach for now: if customer_id is given, assume the client also knows the business_id.
-        # Or, the CRUD function get_all_debts_by_customer should handle user auth.
-        # For now, let's require business_id if customer_id is specified, for proper auth scoping.
-        # This means the prompt's "Else if customer_id: verify customer belongs..." implies business_id is also known.
-        # The current crud.get_all_debts_by_customer(db, customer_id, business_id) takes both.
-        # So, if customer_id is provided, business_id should also be implicitly required for this specific CRUD.
-        # The prompt is a bit ambiguous here. I'll make business_id mandatory if customer_id is used for this CRUD.
-        # If the intention was to list all debts for a customer_id *across any of the user's businesses*,
-        # then a new CRUD function `get_all_debts_for_customer_for_user` would be needed.
-        # For now, I'll stick to a simpler interpretation that listing by customer implies business context.
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="If customer_id is provided, business_id is also required for authorization context with current CRUD functions.")
+        # Verify customer belongs to one of current_user's businesses
+        # Fetch customer first (unscoped by business initially for this check)
+        db_customer = crud.get_customer_by_id_unscoped(db, customer_id=customer_id)
+        if not db_customer:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Customer not found.")
+
+        # Now check if this customer's business is owned by the current user
+        business_of_customer = crud.get_business(db, business_id=db_customer.business_id, user_id=current_user.id)
+        if not business_of_customer:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view debts for this customer.")
+
+        # Now it's safe to list debts for this customer, as they belong to an authorized business
+        return crud.get_all_debts_by_customer(db=db, customer_id=customer_id, business_id=db_customer.business_id, skip=skip, limit=limit)
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Either business_id or customer_id query parameter is required.")
 

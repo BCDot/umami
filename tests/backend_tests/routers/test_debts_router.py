@@ -105,12 +105,33 @@ def test_list_debts_by_business_unauthorized(client: TestClient, debt_auth_heade
     response = client.get(f"{API_V1_PREFIX}/debts/?business_id={test_business_for_debt_user2.id}", headers=debt_auth_headers)
     assert response.status_code == 403
 
-def test_list_debts_by_customer_requires_business_id(client: TestClient, debt_auth_headers: Dict[str, str], test_customer_for_debt: models.Customer):
-    # This test reflects the current router logic which requires business_id if customer_id is used by certain CRUDs.
-    # The router itself actually raises error if only customer_id is given.
+def test_list_debts_by_customer_owned_success(client: TestClient, debt_auth_headers: Dict[str, str], test_customer_for_debt: models.Customer, sample_debt: models.Debt):
+    """Test listing debts for a specific customer owned by the current user."""
+    # sample_debt fixture ensures a debt exists for test_customer_for_debt
     response = client.get(f"{API_V1_PREFIX}/debts/?customer_id={test_customer_for_debt.id}", headers=debt_auth_headers)
-    assert response.status_code == 400
-    assert "If customer_id is provided, business_id is also required" in response.json()["detail"]
+    assert response.status_code == 200
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) >= 1
+    assert any(d["id"] == sample_debt.id and d["customer_id"] == test_customer_for_debt.id for d in data)
+
+def test_list_debts_by_customer_unowned(client: TestClient, debt_auth_headers: Dict[str, str], db: Session, test_business_for_debt_user2: models.Business):
+    """Test listing debts for a customer whose business is not owned by the current user."""
+    # Create a customer belonging to user2's business
+    other_user_customer = crud.create_customer(db=db, customer=schemas.CustomerCreate(
+        customer_name="Unowned Customer for Debt List", email="unownedcustdebt@example.com", address="789 Unowned St",
+        business_id=test_business_for_debt_user2.id
+    ))
+    # Optionally, create a debt for this customer, though not strictly necessary for this auth test
+    # crud.create_debt(db=db, debt=schemas.DebtCreate(
+    #     original_amount=50, outstanding_amount=50, due_date=date.today(), status="New",
+    #     customer_id=other_user_customer.id, business_id=test_business_for_debt_user2.id
+    # ))
+
+    response = client.get(f"{API_V1_PREFIX}/debts/?customer_id={other_user_customer.id}", headers=debt_auth_headers) # User1's token
+    assert response.status_code == 403 # Or 404 if customer itself is considered not found for this user
+    assert "Not authorized to view debts for this customer" in response.json()["detail"]
+
 
 def test_list_debts_no_params(client: TestClient, debt_auth_headers: Dict[str, str]):
     response = client.get(f"{API_V1_PREFIX}/debts/", headers=debt_auth_headers)

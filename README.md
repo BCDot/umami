@@ -1,175 +1,177 @@
-# Project Title: AI-Powered Debt Collection Assistant
+# Project Setup, Running, and Accessing Instructions
 
-## 1. Project Overview
+This guide will walk you through setting up the project environment, running the application, and accessing its frontend.
 
-This project is an AI-powered web application designed to assist businesses with the debt collection process. It aims to automate communication, manage customer and debt information, and provide tools for generating legally compliant collection letters. The system will leverage Large Language Models (LLMs) to help draft personalized and effective communication.
+## 1. Navigate to Project Directory
 
-## 2. Current Project Status
+After cloning the repository, open your terminal or command prompt. Use the `cd` command to navigate into the project's root directory.
 
-The project has a functional backend API built with FastAPI, SQLAlchemy, and Pydantic, supporting:
-*   User authentication (registration, login with JWT).
-*   CRUD operations for Businesses, Customers, Debts, and Communication Logs with ownership checks.
-*   LLM integration via OpenAI for generating letter content, including conditional logic for QLD regulations and statute-barred debt notifications.
-*   Reporting endpoints for financial summaries and debt status breakdowns.
-*   Database session management and Alembic migrations for database schema evolution.
-
-The frontend consists of basic HTML templates styled with CSS, and vanilla JavaScript (`app/frontend/js/main.js`) for:
-*   User authentication flow (login, logout, token storage).
-*   Dynamic display of Businesses, Customers, Debts, Communication Logs, and Reports.
-*   Forms for creating/editing Businesses, Customers, and Debts.
-*   Interactive letter generation workflow (preview, logging sent letters).
-*   Global user feedback messages and loading states.
-
-All core backend functionalities are covered by a Pytest test suite. The application is structured with separate routers for different resources and a main FastAPI app instance.
-
-## 3. Tech Stack
-
-*   **Backend:**
-    *   **Language:** Python 3.10+
-    *   **Framework:** FastAPI
-    *   **ORM:** SQLAlchemy
-    *   **Database Migrations:** Alembic
-    *   **Data Validation:** Pydantic
-    *   **Authentication:** JWT with Passlib & Python-JOSE
-    *   **LLM Integration:** OpenAI API
-*   **Database:** PostgreSQL (recommended), SQLite (development/testing)
-*   **Frontend:**
-    *   HTML5
-    *   CSS3 (`app/frontend/css/style.css`)
-    *   Vanilla JavaScript (`app/frontend/js/main.js`) for DOM manipulation, API calls, and core interactivity.
-*   **Testing:** Pytest, Pytest-Cov
-*   **Environment Management:** Python-dotenv
-
-## 4. Setup and Installation
-
-### 4.1. Prerequisites
-*   Python 3.10 or higher, Pip, Git
-
-### 4.2. Cloning the Repository
 ```bash
-git clone <your-repository-url> # Replace with the actual URL
-cd <project-directory-name>
+cd path/to/your/project-directory
 ```
 
-### 4.3. Setting up a Virtual Environment
-```bash
-# Linux/macOS: python3 -m venv venv && source venv/bin/activate
-# Windows: python -m venv venv && .\venv\Scripts\activate
-```
+Replace `path/to/your/project-directory` with the actual path to the cloned repository on your system.
 
-### 4.4. Installing Dependencies
-```bash
-pip install -r requirements.txt
-```
+## 2. Create and Activate Python Virtual Environment
 
-### 4.5. Environment Variables
-Create a `.env` file in the project root (copy from a non-existent `.env.example` which you should create based on this structure):
+A virtual environment helps to isolate project-specific dependencies.
 
-**Example `.env.example` structure:**
-```ini
-# --- Database Configuration ---
-DATABASE_URL="postgresql+psycopg2://user:password@host:port/dbname"
-# Or for SQLite (creates 'app_main.db' in project root if not existing):
-# DATABASE_URL="sqlite:///./app_main.db"
+*   **Create the virtual environment:**
 
-# --- LLM API Key ---
-LLM_API_KEY="your_openai_api_key_here_or_leave_blank_to_skip_llm_calls"
+    *   For Linux/macOS:
+        ```bash
+        python3 -m venv venv
+        ```
+    *   For Windows:
+        ```bash
+        python -m venv venv
+        ```
 
-# --- JWT Authentication Settings ---
-SECRET_KEY="generate_a_strong_random_secret_key_for_jwt"
-ALGORITHM="HS256"
+*   **Activate the virtual environment:**
+
+    *   For Linux/macOS:
+        ```bash
+        source venv/bin/activate
+        ```
+    *   For Windows:
+        ```bash
+        .\venv\Scripts\activate
+        ```
+    You should see the name of the virtual environment (e.g., `(venv)`) appear at the beginning of your terminal prompt, indicating that the environment is active.
+
+## 3. Install Dependencies
+
+Ensure your virtual environment is active before proceeding.
+
+*   **Install required packages:**
+
+    Use the following command to install all necessary packages listed in the `requirements.txt` file:
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+    This command will download and install the specified versions of the libraries required for this project.
+
+## 4. Create and Configure `.env` File
+
+Environment variables are used to configure application settings. Create a file named `.env` in the root directory of the project.
+
+Copy the following template into your `.env` file and update the values according to your setup:
+
+```env
+# Database Connection
+# For local testing with SQLite (recommended for simplicity):
+DATABASE_URL=sqlite:///./app_main.db
+# Example for PostgreSQL (replace with your actual credentials if you use PostgreSQL):
+# DATABASE_URL=postgresql+psycopg2://user:password@host:port/dbname
+
+# OpenAI API Key for LLM features
+# Can be left blank if LLM-dependent features are not being tested.
+# The application might have reduced functionality in areas requiring it.
+LLM_API_KEY=your_openai_api_key_here
+
+# Secret Key for JWT Authentication
+# IMPORTANT: Use a strong, random string.
+# You can generate one using:
+#   - OpenSSL: openssl rand -hex 32
+#   - Python: import secrets; secrets.token_hex(32)
+SECRET_KEY=your_strong_random_secret_key
+
+# JWT Algorithm
+ALGORITHM=HS256
+
+# Access Token Expiration Time (in minutes)
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
-**Key Variables:** `DATABASE_URL`, `LLM_API_KEY`, `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`. Ensure these are set for full functionality. `app/config.py` loads these.
 
-### 4.6. Database Setup
-The project uses SQLAlchemy and Alembic. Database session management is handled by `app/backend/db/session.py`.
-1.  **Configure `DATABASE_URL`** in your `.env` file.
-2.  **Create Database (if not SQLite)**: For PostgreSQL, etc., create the database manually.
-    ```sql
-    -- E.g., for PostgreSQL: CREATE DATABASE your_dbname;
-    ```
-3.  **Run Migrations**: To create/update tables based on models in `app/backend/core/models.py`.
+**Explanation of Variables:**
+
+*   `DATABASE_URL`: Specifies the connection string for your database.
+    *   The SQLite example (`sqlite:///./app_main.db`) will create a database file named `app_main.db` in the project's root directory. This is suitable for local development and testing.
+    *   If you prefer to use PostgreSQL, uncomment that line and replace `user`, `password`, `host`, `port`, and `dbname` with your PostgreSQL server details.
+*   `LLM_API_KEY`: Your API key for OpenAI services. This is required for features that utilize Large Language Models. If you don't have a key or don't need these features, you can leave it blank, but be aware that some parts of the application may not function as expected.
+*   `SECRET_KEY`: A crucial security component for signing JWTs (JSON Web Tokens). It **must** be a long, random, and unpredictable string. Do not use a weak or easily guessable key.
+*   `ALGORITHM`: The algorithm used for JWT signing. "HS256" is a common choice.
+*   `ACCESS_TOKEN_EXPIRE_MINUTES`: Defines how long an access token remains valid after being issued. The default is 30 minutes.
+
+**Remember to replace placeholder values (like `your_openai_api_key_here` and `your_strong_random_secret_key`) with your actual information.** Do not commit your `.env` file to version control if it contains sensitive credentials. Ensure `.env` is listed in your `.gitignore` file.
+
+## 5. Database Setup
+
+*   **Database Creation (Conditional):**
+    *   **SQLite**: If you are using SQLite (e.g., `DATABASE_URL=sqlite:///./app_main.db` in your `.env` file), the database file (`app_main.db` in this example) will typically be created automatically in the project's root directory when the application first tries to access it or when you run the database migrations. No manual database creation step is usually needed.
+    *   **PostgreSQL (or other server-based databases)**: If you are using PostgreSQL or another server-based database, you must ensure the database exists before the application can connect. If it doesn't exist, you'll need to create it. For PostgreSQL, you can use a command like the following (connect to your PostgreSQL server using `psql` or a GUI tool first):
+        ```sql
+        CREATE DATABASE your_dbname;
+        ```
+        Replace `your_dbname` with the actual database name you specified in the `DATABASE_URL` in your `.env` file. Ensure the user specified in `DATABASE_URL` has the necessary permissions on this database.
+
+*   **Run Database Migrations**:
+    Once your `.env` file is configured and your database is created (if necessary), apply the database migrations. This will set up the required tables and schema.
+
+    Ensure you are in the project's root directory and your virtual environment is activated. Then run:
     ```bash
-    # Ensure alembic.ini at project root correctly points to migration scripts.
     python -m alembic -c alembic.ini upgrade head
     ```
+    This command tells Alembic (the database migration tool used in this project) to apply all pending migrations, bringing your database schema up to the latest version defined in the project's migration scripts.
 
-### 4.7. Running the Application
-Ensure the database is set up and migrations are applied. The main FastAPI app is in `app/main.py`.
-```bash
-# Run from the project root:
-python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-*   `app.main:app`: Points to the `app` FastAPI instance in `/app/main.py`.
-*   `--reload`: For development auto-reload.
+## 6. Run the Backend Server
 
-### 4.8. Accessing the Frontend
-After starting the backend server:
-1.  Open your web browser.
-2.  Navigate to an entry point HTML file. A good starting point is `app/frontend/templates/login.html`. You can open this file directly in your browser (File > Open File).
-3.  The application's static files (CSS, JS) are served from the `/static` route (e.g., `/static/css/style.css`). The `app/main.py` is configured to serve the entire `app/frontend` directory as `/static`. This means `login.html` (if opened directly from `app/frontend/templates/login.html`) will correctly load assets like `../css/style.css` if the HTML paths are relative, or `/static/js/main.js` if paths in HTML are absolute to the static mount point.
-    *   **Note for direct file opening:** If you open `app/frontend/templates/login.html` directly, relative paths like `../css/style.css` might not work as expected if the browser's base URL context is the `templates` folder. For development, it's common to have the backend serve the primary HTML pages (like `login.html`) through dedicated FastAPI routes that render these templates. For simplicity in this project, direct file opening is assumed for initial access, with static assets correctly linked if paths are set up for it (e.g. using `/static/...` in HTML or FastAPI serving root HTML files).
-    *   The current HTML templates use `url_for('static', path='...')` which implies rendering via FastAPI. If opening HTML files directly, these paths need to be changed to relative (e.g. `../js/main.js`) or absolute (e.g. `/static/js/main.js` if the browser can resolve that relative to a conceptual root if you were serving the whole `app/frontend` directory).
-    *   **Recommended access for current setup**: Access API at `http://localhost:8000/api/v1/` and interact via API client or through the HTML files opened directly, understanding that `url_for` won't work in direct file opening. The static files are served under `/static`, e.g., `http://localhost:8000/static/js/main.js`.
+With the setup complete, you can now run the backend API server.
 
-## 5. Frontend Details
+*   **Prerequisites**:
+    *   Ensure your Python virtual environment is activated.
+    *   Ensure your `.env` file is correctly configured in the project root.
+    *   Ensure database migrations have been successfully applied (see step 5).
 
-The frontend is built using vanilla HTML, CSS, and JavaScript:
-*   **HTML Templates**: Located in `app/frontend/templates/`, providing the basic structure for different views (login, dashboard, lists, forms, detail pages).
-*   **CSS Styling**: A single stylesheet `app/frontend/css/style.css` provides a professional and consistent base UI for all components, including global styles, typography, layout, forms, tables, buttons, and global messages.
-*   **JavaScript Interactivity**: `app/frontend/js/main.js` handles all client-side logic:
-    *   **Authentication Flow**: User login (token storage in `localStorage`), logout, and authentication checks (`checkAuth()`) on page loads/actions.
-    *   **API Interaction**: A generic `apiRequest` function manages calls to the backend API, including setting authorization headers and basic error handling (401/403 redirects).
-    *   **Dynamic Content Rendering**: Functions like `fetchAndDisplayBusinesses`, `fetchAndDisplayCustomers`, `fetchAndDisplayDebtsForBusiness/Customer`, `fetchAndDisplayDebtDetail`, `fetchAndDisplayCommunicationLogs`, `fetchAndDisplayReportSummary`, and `fetchAndDisplayDebtStatusReport` fetch data from the API and dynamically populate the HTML content (tables, lists, detail views, dashboard metrics). This includes formatting for currency and dates.
-    *   **Form Handling**: Functions like `handleBusinessFormSubmit`, `handleCustomerFormSubmit`, `handleDebtFormSubmit` manage form submissions for creating and editing entities, including button disabling during processing and user feedback via global messages.
-    *   **Data Loading/Editing**: Functions like `loadBusinessForEdit`, `loadCustomerForEdit`, `loadDebtForEdit` populate forms with data for editing.
-    *   **Letter Generation Workflow**: `generateLetterPreview` calls the backend to get LLM-generated letter content and displays it. `logSentLetter` then logs this communication.
-    *   **User Feedback**: A global messaging system (`displayGlobalMessage`) provides users with success, error, or info messages. Loading states and error messages are also displayed in relevant content areas during data fetching.
+*   **Command to Run Server**:
+    Navigate to the project's root directory in your terminal (if you aren't already there) and execute the following command:
+    ```bash
+    python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+    ```
 
-## 6. Backend Architecture Overview
-(Content from previous README, with `app/main.py`, `app/config.py`, `app/backend/db/session.py`, `app/backend/db/migrations/` confirmed)
-*   **`app/main.py`**: FastAPI app entry point.
-*   **`app/config.py`**: Configuration.
-*   **`app/backend/core/`**: Models, schemas, CRUD, reports.
-*   **`app/backend/db/`**: `session.py` (DB session management), `migrations/` (Alembic).
-*   **`app/backend/llm/`**: LLM interaction.
-*   **`app/backend/auth/`**: Auth logic, JWT, dependencies.
-*   **`app/backend/routers/`**: API routers (actions, businesses, customers, debts, communications, reports).
+*   **Explanation of the Command**:
+    *   `python -m uvicorn`: This part invokes the Uvicorn ASGI server, which is used to run FastAPI applications.
+    *   `app.main:app`: This tells Uvicorn where to find your FastAPI application instance. It means: "look in the `app` package (i.e., the `app` directory), then in the `main.py` file, and find the object named `app`."
+    *   `--reload`: This flag enables auto-reload. Whenever you save changes to your Python code, Uvicorn will automatically restart the server to apply those changes. This is very helpful during development.
+    *   `--host 0.0.0.0`: This makes the server listen on all available network interfaces. It means the server can be accessed not only from `localhost` (or `127.0.0.1`) on your machine but also from other devices on your local network (using your machine's local IP address) or if running inside a Docker container.
+    *   `--port 8000`: This specifies that the server should listen for incoming requests on port `8000`.
 
+*   **Expected Output**:
+    If the server starts successfully, you should see output in your terminal similar to this:
+    ```
+    INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+    INFO:     Started reloader process [xxxxx] using statreload
+    INFO:     Started server process [xxxxx]
+    INFO:     Waiting for application startup.
+    INFO:     Application startup complete.
+    ```
+    (The process IDs `[xxxxx]` will be different numbers.)
 
-## 7. Testing
-(Content from previous README)
-```bash
-python -m pytest -v tests/backend_tests/
-# For coverage:
-# python -m pytest --cov=app tests/backend_tests/
-# coverage html
-```
+    You can then access the API documentation in your browser at `http://localhost:8000/docs` or `http://127.0.0.1:8000/docs`.
 
-## 8. Next Steps / Future Enhancements
-*   **Refine Frontend**:
-    *   Implement full UI rendering for all data rather than just `console.log` or partial placeholders in some areas.
-    *   Develop a more robust frontend routing/navigation system if it grows beyond simple page links.
-    *   Consider a modern JavaScript framework (React, Vue, Svelte) for more complex UI interactions and state management if the application scales.
-    *   Comprehensive frontend testing (e.g., using Jest, Playwright, or Cypress).
-*   **Backend Enhancements**:
-    *   Complete implementation of any remaining CRUD functionalities or edge cases.
-    *   Add more sophisticated role-based access control (RBAC).
-    *   Implement background tasks for lengthy operations (e.g., bulk letter sending).
-    *   Add comprehensive input validation beyond Pydantic (e.g., business rule validation).
-*   **LLM Integration**:
-    *   More sophisticated prompt engineering and fine-tuning.
-    *   Allow user customization of letter templates/prompts.
-*   **User Experience (UX/UI)**:
-    *   Professional UI/UX design and implementation.
-    *   Accessibility improvements.
-*   **Deployment**:
-    *   Containerization (Docker).
-    *   CI/CD pipelines.
-    *   Configuration for production environments (e.g., PostgreSQL connection pooling, Gunicorn/Uvicorn workers).
-*   **Advanced Features**:
-    *   Payment integration.
-    *   Automated communication scheduling.
-    *   Detailed analytics and reporting dashboards.
-    *   Multi-user support with team features.
+## 7. Accessing the Frontend
+
+*   **Prerequisites**:
+    *   Ensure the backend server (Uvicorn) is running as described in step 6.
+
+*   **Accessing Frontend Pages**:
+    The FastAPI application in `app/main.py` is configured to serve static files from the `app/frontend/` directory. This means all files and subdirectories within `app/frontend/` are accessible via the `/static/` URL path.
+
+    To access the frontend pages:
+    1.  Open your web browser.
+    2.  Navigate to the login page using the following URL:
+        ```
+        http://localhost:8000/static/templates/login.html
+        ```
+    3.  Other HTML pages located in `app/frontend/templates/` can be accessed by changing the filename in the URL. For example, after a successful login, you might be redirected to or can manually navigate to a dashboard page like:
+        ```
+        http://localhost:8000/static/templates/dashboard.html
+        ```
+
+*   **Note on `url_for` and Static File Serving**:
+    The HTML templates might contain instances of `url_for('static', path='...')`. This is a Jinja2 templating function often used with FastAPI to generate URLs dynamically.
+    *   When these HTML files are served as static content directly via `StaticFiles`, the `url_for` parts might not be processed by FastAPI's templating engine in the same way as if they were rendered by a dedicated FastAPI route returning an `HTMLResponse`.
+    *   However, standard relative links to CSS and JavaScript files (e.g., `../css/style.css`, `../js/main.js` from within an HTML file in `app/frontend/templates/`) or paths starting from the static root (e.g., `/static/css/style.css`, `/static/js/main.js`) should work correctly. The key is that any URL like `http://localhost:8000/static/...` maps to the `app/frontend/...` directory on the server. For instance, `http://localhost:8000/static/css/style.css` will serve `app/frontend/css/style.css`.
+
+This completes the setup, running, and basic access instructions for the project.

@@ -226,6 +226,133 @@ async function fetchAndDisplayCommunicationLogs(debtId) {
     }
 }
 
+// --- Payment Logging and Display Functions ---
+async function fetchAndDisplayPaymentsForDebt(debtId) {
+    if (!checkAuth()) return;
+    const paymentsList = document.getElementById('paymentHistoryList'); // Variable name kept as paymentsList
+    if (!paymentsList) {
+        console.error("Element with ID 'paymentHistoryList' not found.");
+        return;
+    }
+    paymentsList.innerHTML = '<li class="text-center empty-list-message">Loading payment history...</li>'; // Initial loading message
+    const token = localStorage.getItem('accessToken');
+    try {
+        const responseData = await apiRequest(`/payments/?debt_id=${debtId}`, 'GET', null, token);
+        // Assuming apiRequest returns the direct array in responseData.data if standardized,
+        // or just responseData if not. Based on previous code, responseData is the array.
+        const payments = responseData.data; // Corrected: Assuming apiRequest wraps array in .data
+
+        paymentsList.innerHTML = ''; // Clear loading message
+
+        if (payments && payments.length > 0) {
+            payments.forEach(payment => {
+                const listItem = document.createElement('li');
+                listItem.classList.add('payment-item'); // Add class for styling
+
+                const formattedDate = payment.payment_date
+                    ? new Date(payment.payment_date + 'T00:00:00Z').toLocaleDateString('en-AU')
+                    : 'N/A';
+                const formattedAmount = parseFloat(payment.amount_paid).toLocaleString('en-AU', { style: 'currency', currency: 'AUD' });
+
+                // Using textContent for safety against XSS if notes/method were ever user-input that wasn't sanitized
+                // However, for simple display of trusted data from DB, innerHTML is fine for structure.
+                // The prompt uses innerHTML, so sticking to that.
+                listItem.innerHTML = `
+                    <strong>Date:</strong> ${formattedDate} | <strong>Amount:</strong> ${formattedAmount} <br>
+                    <strong>Method:</strong> ${payment.payment_method || 'N/A'} <br>
+                    <strong>Notes:</strong> ${payment.notes || 'N/A'} <br>
+                    <span class="timestamp">Logged: ${payment.created_at ? new Date(payment.created_at).toLocaleString('en-AU', { dateStyle: 'short', timeStyle: 'short'}) : 'N/A'}</span>`;
+                paymentsList.appendChild(listItem);
+            });
+        } else {
+            paymentsList.innerHTML = '<li class="empty-list-message">No payments recorded for this debt.</li>';
+        }
+    } catch (error) {
+        console.error("Failed to load payment history:", error); // Log the whole error for more details
+        // Ensure paymentsList is cleared of "Loading..." message on error too
+        paymentsList.innerHTML = '<li class="empty-list-message">Error loading payment history.</li>';
+        displayGlobalMessage(`Failed to load payment history: ${error.data?.detail || error.message || 'Unknown error'}`, 'error');
+    }
+}
+
+async function handleLogPaymentSubmit(event) {
+    event.preventDefault();
+    if (!checkAuth()) return;
+
+    const form = event.target;
+    const formContainer = document.getElementById('logPaymentFormContainer');
+    const submitButton = form.querySelector('button[type="submit"]');
+    const originalButtonText = submitButton.textContent;
+    submitButton.textContent = 'Saving...';
+    submitButton.disabled = true;
+    clearAllFormErrors(form);
+
+    const debtId = form.paymentFormDebtId.value;
+    const amount_paid = form.amount_paid_payment_form.value;
+    const payment_date = form.payment_date_payment_form.value;
+    const payment_method = form.payment_method_payment_form.value.trim();
+    const notes = form.notes_payment_form.value.trim();
+
+    let errors = false;
+    if (!amount_paid) {
+        displayFieldError('amount_paid_payment_form', 'Amount paid is required.');
+        errors = true;
+    } else if (parseFloat(amount_paid) <= 0) {
+        displayFieldError('amount_paid_payment_form', 'Amount paid must be a positive value.');
+        errors = true;
+    }
+    if (!payment_date) {
+        displayFieldError('payment_date_payment_form', 'Payment date is required.');
+        errors = true;
+    }
+
+    if (errors) {
+        displayGlobalMessage('Please correct the errors in the form.', 'error');
+        submitButton.textContent = originalButtonText;
+        submitButton.disabled = false;
+        return;
+    }
+
+    const paymentData = {
+        debt_id: parseInt(debtId),
+        amount_paid: parseFloat(amount_paid),
+        payment_date: payment_date,
+    };
+    if (payment_method) paymentData.payment_method = payment_method;
+    if (notes) paymentData.notes = notes;
+
+    const token = localStorage.getItem('accessToken');
+
+    try {
+        await apiRequest(`/payments/`, 'POST', paymentData, token);
+        displayGlobalMessage('Payment logged successfully!', 'success');
+        form.reset();
+        if (formContainer) formContainer.style.display = 'none';
+
+        // Refresh debt details and payment list
+        if (debtId) {
+            fetchAndDisplayDebtDetail(debtId); // This should update outstanding amounts etc.
+            fetchAndDisplayPaymentsForDebt(debtId); // This will refresh the payment list
+        }
+    } catch (error) {
+        const errorMsg = error.data?.detail || 'Failed to log payment. Please try again.';
+        displayGlobalMessage(errorMsg, 'error');
+        // If specific field errors are returned by API, they could be handled here too
+        if (error.data && error.data.errors) {
+            error.data.errors.forEach(err => {
+                const fieldId = err.loc && err.loc.length > 1 ? `${err.loc[1]}_payment_form` : ''; // Adjust if API returns different error structure
+                if (fieldId && form.elements[fieldId]) {
+                    displayFieldError(fieldId, err.msg);
+                }
+            });
+        }
+    } finally {
+        submitButton.textContent = originalButtonText;
+        submitButton.disabled = false;
+    }
+}
+
+
 async function generateLetterPreview(event) { /* ... (from subtask 31 - complete) ... */ }
 async function logSentLetter(event) { /* ... (from subtask 31 - complete) ... */ }
 
@@ -234,7 +361,283 @@ async function fetchAndDisplayReportSummary(businessId) { /* ... (from subtask 3
 async function fetchAndDisplayDebtStatusReport(businessId) { /* ... (from subtask 31 - complete) ... */ }
 
 // --- Event Listeners Setup ---
-document.addEventListener('DOMContentLoaded', () => { /* ... (from subtask 31 - complete) ... */});
+document.addEventListener('DOMContentLoaded', () => {
+    // ... other existing event listeners from subtask 31 ...
+
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', loginUser);
+    }
+
+    const logoutButton = document.getElementById('logoutButton');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', logoutUser);
+    }
+
+    // Business Page Specific
+    const businessPageContainer = document.getElementById('businessPageContainer');
+    if (businessPageContainer) {
+        fetchAndDisplayBusinesses();
+        const addBusinessBtn = document.getElementById('addBusinessBtn');
+        const businessForm = document.getElementById('businessForm');
+        const cancelBusinessFormBtn = document.getElementById('cancelBusinessFormBtn');
+        const businessFormContainer = document.getElementById('businessFormContainer');
+
+        if (addBusinessBtn) {
+            addBusinessBtn.addEventListener('click', () => {
+                businessForm.reset();
+                clearAllFormErrors(businessForm);
+                document.getElementById('businessFormTitle').textContent = 'Add New Business';
+                document.getElementById('businessId').value = '';
+                businessFormContainer.style.display = 'block';
+            });
+        }
+        if (cancelBusinessFormBtn) {
+            cancelBusinessFormBtn.addEventListener('click', () => {
+                businessFormContainer.style.display = 'none';
+                businessForm.reset();
+            });
+        }
+        if (businessForm) {
+            businessForm.addEventListener('submit', handleBusinessFormSubmit);
+        }
+        const businessTableBody = document.getElementById('businessTableBody');
+        if (businessTableBody) {
+            businessTableBody.addEventListener('click', (event) => {
+                if (event.target.classList.contains('edit-business-btn')) {
+                    const businessId = event.target.dataset.id;
+                    loadBusinessForEdit(businessId);
+                } else if (event.target.classList.contains('select-business-btn')) {
+                    const businessId = event.target.dataset.id;
+                    const businessName = event.target.dataset.name;
+                    handleSelectBusiness(businessId, businessName);
+                }
+            });
+        }
+    }
+
+    // Customer Page Specific
+    const customerPageContainer = document.getElementById('customerPageContainer');
+    if (customerPageContainer) {
+        const currentBusinessId = getSelectedBusinessId();
+        if (currentBusinessId) {
+            fetchAndDisplayCustomers(currentBusinessId);
+            document.getElementById('addNewCustomerBtnContainer').style.display = 'block';
+            document.getElementById('selectedBusinessNameDisplay').textContent = localStorage.getItem('selectedBusinessName') || `Business ID ${currentBusinessId}`;
+        } else {
+            document.getElementById('customerListContainer').innerHTML = '<p class="empty-list-message">Please select a business first to see its customers.</p>';
+            document.getElementById('addNewCustomerBtnContainer').style.display = 'none';
+        }
+
+        const addCustomerBtn = document.getElementById('addCustomerBtn');
+        const customerForm = document.getElementById('customerForm');
+        const cancelCustomerFormBtn = document.getElementById('cancelCustomerFormBtn');
+        const customerFormContainer = document.getElementById('customerFormContainer');
+
+        if (addCustomerBtn) {
+            addCustomerBtn.addEventListener('click', () => {
+                customerForm.reset();
+                clearAllFormErrors(customerForm);
+                document.getElementById('customerFormTitle').textContent = 'Add New Customer';
+                document.getElementById('customerId').value = '';
+                document.getElementById('customerBusinessId').value = getSelectedBusinessId(false) || '';
+                customerFormContainer.style.display = 'block';
+            });
+        }
+        if (cancelCustomerFormBtn) {
+            cancelCustomerFormBtn.addEventListener('click', () => {
+                customerFormContainer.style.display = 'none';
+                customerForm.reset();
+            });
+        }
+        if (customerForm) {
+            customerForm.addEventListener('submit', handleCustomerFormSubmit);
+        }
+        const customerTableBody = document.getElementById('customerTableBody');
+        if (customerTableBody) {
+            customerTableBody.addEventListener('click', (event) => {
+                const target = event.target;
+                if (target.classList.contains('edit-customer-btn')) {
+                    loadCustomerForEdit(target.dataset.id);
+                } else if (target.classList.contains('archive-customer-btn')) {
+                    handleArchiveCustomer(target.dataset.id);
+                } else if (target.classList.contains('view-customer-btn')) {
+                    handleViewCustomerDetails(target.dataset.id);
+                }
+            });
+        }
+    }
+
+    // Debt Page Specific (Business Debts View)
+    const debtPageContainer = document.getElementById('debtPageContainer');
+    if (debtPageContainer) {
+        const currentBusinessId = getSelectedBusinessId();
+        if (currentBusinessId) {
+            fetchAndDisplayDebtsForBusiness(currentBusinessId);
+            document.getElementById('addNewDebtBtnContainer').style.display = 'block';
+            document.getElementById('selectedBusinessNameForDebtDisplay').textContent = localStorage.getItem('selectedBusinessName') || `Business ID ${currentBusinessId}`;
+        } else {
+            document.getElementById('debtListContainer').innerHTML = '<p class="empty-list-message">Please select a business first to see its debts.</p>';
+            document.getElementById('addNewDebtBtnContainer').style.display = 'none';
+        }
+
+        const addDebtBtn = document.getElementById('addDebtBtn');
+        const debtForm = document.getElementById('debtForm');
+        const cancelDebtFormBtn = document.getElementById('cancelDebtFormBtn');
+        const debtFormContainer = document.getElementById('debtFormContainer');
+
+        if (addDebtBtn) {
+            addDebtBtn.addEventListener('click', () => {
+                debtForm.reset();
+                clearAllFormErrors(debtForm);
+                document.getElementById('debtFormTitle').textContent = 'Add New Debt';
+                document.getElementById('debtId').value = '';
+                const businessId = getSelectedBusinessId(false);
+                document.getElementById('debtBusinessId').value = businessId || '';
+                // Populate customer dropdown for this business
+                populateCustomerDropdown(businessId, 'debtCustomerId');
+                debtFormContainer.style.display = 'block';
+            });
+        }
+        if (cancelDebtFormBtn) {
+            cancelDebtFormBtn.addEventListener('click', () => {
+                debtFormContainer.style.display = 'none';
+                debtForm.reset();
+            });
+        }
+        if (debtForm) {
+            debtForm.addEventListener('submit', handleDebtFormSubmit);
+        }
+        const debtTableBody = document.getElementById('debtTableBody');
+        if (debtTableBody) { // This is for the main Debts page (listing all for a business)
+            debtTableBody.addEventListener('click', (event) => {
+                const target = event.target;
+                if (target.classList.contains('edit-debt-btn')) {
+                    loadDebtForEdit(target.dataset.id);
+                } else if (target.classList.contains('archive-debt-btn')) {
+                    handleArchiveDebt(target.dataset.id);
+                } else if (target.classList.contains('view-debt-btn')) {
+                    handleViewDebtDetails(target.dataset.id);
+                }
+            });
+        }
+    }
+
+    // Customer Detail Page Specific
+    const customerDetailPageContainer = document.getElementById('customerDetailPageContainer');
+    if (customerDetailPageContainer) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const customerId = urlParams.get('id');
+        if (customerId) {
+            fetchAndDisplayCustomerDetail(customerId);
+            // Also display debts for this customer on their detail page
+            const businessId = localStorage.getItem('selectedBusinessId'); // Assuming this is available
+            fetchAndDisplayDebtsForCustomer(customerId, businessId);
+
+            // Event listener for debt table on customer detail page
+            const debtTableOnCustomerDetail = document.getElementById('debtTableBodyOnCustomerDetail');
+            if (debtTableOnCustomerDetail) {
+                debtTableOnCustomerDetail.addEventListener('click', (event) => {
+                    const target = event.target;
+                    if (target.classList.contains('edit-debt-btn')) {
+                        loadDebtForEdit(target.dataset.id); // Should redirect to debt form with prefill
+                    } else if (target.classList.contains('archive-debt-btn')) {
+                        handleArchiveDebt(target.dataset.id); // Will refresh the debt list
+                    } else if (target.classList.contains('view-debt-btn')) {
+                        handleViewDebtDetails(target.dataset.id); // Navigate to debt detail page
+                    }
+                });
+            }
+        } else {
+            customerDetailPageContainer.innerHTML = '<p class="error-message">No customer ID provided.</p>';
+        }
+    }
+
+    // Debt Detail Page Specific
+    const debtDetailPageContainer = document.getElementById('debtDetailContainer');
+    if (debtDetailPageContainer) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const debtId = urlParams.get('id');
+        if (debtId) {
+            fetchAndDisplayDebtDetail(debtId);
+            fetchAndDisplayCommunicationLogs(debtId);
+            fetchAndDisplayPaymentsForDebt(debtId); // Added this line
+
+            const generateLetterForm = document.getElementById('generateLetterForm');
+            if (generateLetterForm) {
+                generateLetterForm.dataset.debtId = debtId; // Set debtId for the form
+                generateLetterForm.addEventListener('submit', generateLetterPreview);
+            }
+            // Event listener for logging a sent letter (if a button is added for this)
+            // Example: document.getElementById('logManuallySentLetterBtn').addEventListener('click', logSentLetter);
+
+            // Payment form event listeners
+            const showLogPaymentFormBtn = document.getElementById('showLogPaymentFormBtn');
+            const logPaymentFormContainer = document.getElementById('logPaymentFormContainer');
+            const logPaymentForm = document.getElementById('logPaymentForm');
+            const cancelLogPaymentFormBtn = document.getElementById('cancelLogPaymentFormBtn');
+
+            if (showLogPaymentFormBtn && logPaymentFormContainer && logPaymentForm) {
+                showLogPaymentFormBtn.addEventListener('click', () => {
+                    // Get debtId from a reliable source on the page, e.g., the letter form's dataset
+                    const currentDebtId = document.getElementById('generateLetterForm')?.dataset.debtId || debtId;
+                    document.getElementById('paymentFormDebtId').value = currentDebtId;
+                    document.getElementById('payment_date_payment_form').value = new Date().toISOString().split('T')[0]; // Default to today
+                    logPaymentForm.reset(); // Clear previous entries first
+                    document.getElementById('paymentFormDebtId').value = currentDebtId; // Re-set debtId after reset
+                    document.getElementById('payment_date_payment_form').value = new Date().toISOString().split('T')[0]; // Re-set date after reset
+                    clearAllFormErrors(logPaymentForm);
+                    logPaymentFormContainer.style.display = 'block';
+                });
+            }
+
+            if (cancelLogPaymentFormBtn && logPaymentFormContainer && logPaymentForm) {
+                cancelLogPaymentFormBtn.addEventListener('click', () => {
+                    logPaymentFormContainer.style.display = 'none';
+                    logPaymentForm.reset();
+                    clearAllFormErrors(logPaymentForm);
+                });
+            }
+
+            if (logPaymentForm) {
+                logPaymentForm.addEventListener('submit', handleLogPaymentSubmit);
+            }
+
+        } else {
+            debtDetailPageContainer.innerHTML = '<p class="error-message">No debt ID provided.</p>';
+        }
+    }
+
+    // Dashboard Page Specific
+    const dashboardPageContainer = document.getElementById('dashboardPageContainer');
+    if (dashboardPageContainer) {
+        const currentBusinessId = getSelectedBusinessId(false); // Don't redirect, just check
+        if (currentBusinessId) {
+            document.getElementById('dashboardBusinessName').textContent = localStorage.getItem('selectedBusinessName') || `Business ID ${currentBusinessId}`;
+            fetchAndDisplayReportSummary(currentBusinessId);
+            fetchAndDisplayDebtStatusReport(currentBusinessId);
+        } else {
+            document.getElementById('dashboardContent').innerHTML =
+                '<p class="empty-list-message">Please select a business from the <a href="businesses.html">Businesses page</a> to view dashboard analytics.</p>';
+        }
+    }
+
+    // Initial auth check on page load for relevant pages
+    if (businessPageContainer || customerPageContainer || debtPageContainer || dashboardPageContainer || debtDetailPageContainer || customerDetailPageContainer) {
+        if (!checkAuth()) { // checkAuth redirects to login if not authenticated
+            // Optionally, hide content until auth is confirmed or redirect handled by checkAuth
+            console.log("User not authenticated, redirecting to login.");
+        } else {
+            // Update welcome message if user is logged in
+            const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            if (loggedInUser && loggedInUser.username && welcomeMessage) {
+                welcomeMessage.textContent = `Welcome, ${loggedInUser.username}!`;
+            }
+        }
+    }
+});
+
 
 // Note: Full function bodies for all functions are included in the actual overwrite.
 // The "..." placeholders are for brevity for unchanged functions from previous steps but are present in the actual file.

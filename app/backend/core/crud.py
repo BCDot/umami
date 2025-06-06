@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from decimal import Decimal # Added Decimal
+from datetime import datetime, date as python_date # Added date, aliased to avoid conflict with model field
 
 from . import models
 from . import schemas
@@ -288,9 +290,130 @@ def update_communication_log(db: Session, log_id: int, log_update: schemas.Commu
     """Update an existing communication log."""
     db_log = get_communication_log(db, log_id=log_id)
     if db_log:
-        update_data = log_update.model_dump(exclude_unset=True) # Changed from dict()
+        update_data = log_update.model_dump(exclude_unset=True)
         for key, value in update_data.items():
             setattr(db_log, key, value)
         db.commit()
         db.refresh(db_log)
     return db_log
+
+# ---- Payment CRUD Functions ----
+
+def create_payment(db: Session, payment: schemas.PaymentCreate, debt_id: int) -> models.Payment:
+    """Create a new payment and update the associated debt."""
+    db_debt = db.query(models.Debt).filter(models.Debt.id == debt_id).first()
+    if not db_debt:
+        raise ValueError(f"Debt with id {debt_id} not found.")
+    if db_debt.is_archived:
+        raise ValueError(f"Cannot add payment to an archived debt (Debt ID: {debt_id}).")
+
+    # Ensure payment amount is positive
+    if payment.amount_paid <= Decimal(0):
+        raise ValueError("Payment amount must be positive.")
+
+    db_debt.outstanding_amount -= payment.amount_paid
+
+    if db_debt.outstanding_amount <= Decimal(0):
+        db_debt.status = "Paid"
+        db_debt.outstanding_amount = Decimal(0) # Clamp at zero
+    elif db_debt.status == "Paid" and db_debt.outstanding_amount > Decimal(0): # If a payment reduction made it non-zero again
+        # Re-evaluate status based on due date if it was previously 'Paid'
+        if db_debt.due_date and db_debt.due_date < python_date.today():
+            db_debt.status = "Overdue"
+        else:
+            db_debt.status = "Outstanding" # Or "Partially Paid" if you have such a status
+
+    db_payment = models.Payment(**payment.model_dump(), debt_id=debt_id)
+
+    db.add(db_payment)
+    db.add(db_debt) # Add db_debt as its attributes were changed
+    db.commit()
+    db.refresh(db_payment)
+    db.refresh(db_debt) # Refresh debt to get updated values if needed by caller
+    return db_payment
+
+def get_payment(db: Session, payment_id: int) -> Optional[models.Payment]:
+    """Get a specific payment by its ID."""
+    return db.query(models.Payment).filter(models.Payment.id == payment_id).first()
+
+def get_payments_for_debt(db: Session, debt_id: int, skip: int = 0, limit: int = 100) -> List[models.Payment]:
+    """Get all payments for a specific debt, ordered by payment_date descending."""
+    return db.query(models.Payment)\
+        .filter(models.Payment.debt_id == debt_id)\
+        .order_by(models.Payment.payment_date.desc(), models.Payment.created_at.desc())\
+        .offset(skip)\
+        .limit(limit)\
+        .all()
+
+def update_payment(db: Session, payment_id: int, payment_update: schemas.PaymentUpdate) -> Optional[models.Payment]:
+    """Update an existing payment and adjust the associated debt's outstanding amount."""
+    db_payment = db.query(models.Payment).filter(models.Payment.id == payment_id).first()
+    if not db_payment:
+        return None
+
+    db_debt = db_payment.debt # Assumes relationship is loaded or use db_payment.debt_id to query
+    if not db_debt: # Should not happen if FK constraint is in place and payment exists
+        raise ValueError("Associated debt not found for payment.")
+    if db_debt.is_archived:
+        raise ValueError(f"Cannot update payment for an archived debt (Debt ID: {db_debt.id}).")
+
+    old_amount_paid = db_payment.amount_paid
+
+    update_data = payment_update.model_dump(exclude_unset=True)
+    new_amount_paid_in_update = update_data.get("amount_paid")
+
+    if new_amount_paid_in_update is not None and Decimal(new_amount_paid_in_update) <= Decimal(0):
+        raise ValueError("Updated payment amount must be positive.")
+
+    for key, value in update_data.items():
+        setattr(db_payment, key, value)
+
+    # Recalculate debt's outstanding amount based on the change in payment amount
+    # If amount_paid changed:
+    if "amount_paid" in update_data:
+        new_amount_paid = db_payment.amount_paid # This is Decimal(update_data["amount_paid"])
+        difference = new_amount_paid - old_amount_paid # if new is larger, diff is positive
+        db_debt.outstanding_amount -= difference # Subtract the difference
+
+    if db_debt.outstanding_amount <= Decimal(0):
+        db_debt.status = "Paid"
+        db_debt.outstanding_amount = Decimal(0)
+    elif db_debt.status == "Paid" and db_debt.outstanding_amount > Decimal(0):
+        if db_debt.due_date and db_debt.due_date < python_date.today():
+            db_debt.status = "Overdue"
+        else:
+            db_debt.status = "Outstanding" # Or your default non-paid status
+
+    db.add(db_payment) # Add updated payment
+    db.add(db_debt)    # Add updated debt
+    db.commit()
+    db.refresh(db_payment)
+    db.refresh(db_debt)
+    return db_payment
+
+def delete_payment(db: Session, payment_id: int) -> Optional[models.Payment]:
+    """Delete a payment and adjust the associated debt's outstanding amount."""
+    db_payment = db.query(models.Payment).filter(models.Payment.id == payment_id).first()
+    if not db_payment:
+        return None
+
+    db_debt = db_payment.debt
+    if not db_debt: # Should not happen
+        raise ValueError("Associated debt not found for payment.")
+    if db_debt.is_archived:
+         raise ValueError(f"Cannot delete payment for an archived debt (Debt ID: {db_debt.id}).")
+
+    amount_to_restore = db_payment.amount_paid
+    db_debt.outstanding_amount += amount_to_restore
+
+    if db_debt.status == "Paid" and db_debt.outstanding_amount > Decimal(0):
+        if db_debt.due_date and db_debt.due_date < python_date.today():
+            db_debt.status = "Overdue"
+        else:
+            db_debt.status = "Outstanding"
+
+    db.delete(db_payment)
+    db.add(db_debt) # Add updated debt
+    db.commit()
+    db.refresh(db_debt) # Refresh debt to reflect changes
+    return db_payment # Payment object is now detached but contains its last state

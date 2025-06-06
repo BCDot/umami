@@ -84,8 +84,9 @@ class Debt(DebtBase):
     id: int
     created_at: datetime
     updated_at: datetime
-    is_archived: bool # Ensure it's part of the response model
+    is_archived: bool
     communication_logs: List[CommunicationLog] = []
+    payments: List[Payment] = [] # New field for payments
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -172,9 +173,41 @@ class User(UserBase):
 
 # Update forward references for nested schemas after all models are defined
 # Pydantic V2 uses model_rebuild()
+# Define all schemas first
+
+# ---- Payment Schemas ----
+class PaymentBase(BaseModel):
+    amount_paid: Decimal
+    payment_date: date # from datetime
+    payment_method: Optional[str] = None
+    notes: Optional[str] = None
+    # debt_id is not in Base/Create as it's expected from path or CRUD arg
+
+class PaymentCreate(PaymentBase):
+    debt_id: int # Add debt_id for creation payload
+
+class PaymentUpdate(BaseModel): # Explicitly list optional fields
+    amount_paid: Optional[Decimal] = None
+    payment_date: Optional[date] = None
+    payment_method: Optional[str] = None
+    notes: Optional[str] = None
+
+class Payment(PaymentBase):
+    id: int
+    debt_id: int # debt_id is part of the response model
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+# Now call model_rebuild for all models that might have forward references,
+# or to be safe, for all models that are part of such relationships.
+# The order might matter if they depend on each other in complex ways,
+# but with `from __future__ import annotations`, Pydantic V2 is generally good.
 Business.model_rebuild()
-User.model_rebuild() # User also has a List[Business]
+User.model_rebuild()
 Customer.model_rebuild()
+Payment.model_rebuild() # Rebuild Payment first as Debt depends on it.
 Debt.model_rebuild()
 CommunicationLog.model_rebuild()
 

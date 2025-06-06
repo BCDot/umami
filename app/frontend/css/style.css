@@ -260,3 +260,21 @@ td .button:last-child, td .button-small:last-child { margin-right: 0; }
 .small-text { font-size: 0.875em; } /* Standardized small text */
 .mb-1 { margin-bottom: 0.5rem !important; } .mb-2 { margin-bottom: 1rem !important; }
 .mt-1 { margin-top: 0.5rem !important; } .mt-2 { margin-top: 1rem !important; }
+
+/* Payment Item Styling */
+.payment-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 5px;
+    background-color: #f9f9f9;
+    border-radius: 4px; /* Optional: for rounded corners */
+}
+.payment-item strong {
+    color: #333; /* Darker color for labels within payment item */
+}
+.payment-item .timestamp { /* Style for the "Logged: ..." part */
+    font-size: 0.85em;
+    color: #555;
+    display: block; /* Ensure it takes its own line or adjust as needed */
+    margin-top: 4px;
+}

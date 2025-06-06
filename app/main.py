@@ -8,6 +8,7 @@ from app.backend.routers.businesses import router as businesses_router
 from app.backend.routers.customers import router as customers_router
 from app.backend.routers.debts import router as debts_router
 from app.backend.routers.users import router as users_router
+from app.backend.routers.payments import router as payments_router # New payments router
 from app.backend.routers.communications import router as comms_router
 from app.backend.routers.actions import router as actions_router
 from app.backend.routers.reports import router as reports_router
@@ -55,6 +56,7 @@ app.include_router(businesses_router, prefix=API_V1_PREFIX)
 app.include_router(customers_router, prefix=f"{API_V1_PREFIX}/customers")
 app.include_router(debts_router, prefix=f"{API_V1_PREFIX}/debts")
 app.include_router(users_router, prefix=f"{API_V1_PREFIX}/users")
+app.include_router(payments_router, prefix=f"{API_V1_PREFIX}/payments") # Include payments router
 app.include_router(comms_router, prefix=API_V1_PREFIX)
 app.include_router(actions_router, prefix=API_V1_PREFIX)
 app.include_router(reports_router, prefix=API_V1_PREFIX)
